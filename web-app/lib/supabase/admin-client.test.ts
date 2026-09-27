@@ -7,7 +7,6 @@ const { createClientMock } = vi.hoisted(() => ({
   createClientMock: vi.fn(() => ({ kind: "admin-client" })),
 }));
 
-vi.mock("server-only", () => ({}));
 vi.mock("@supabase/supabase-js", () => ({ createClient: createClientMock }));
 
 const SAMPLE_URL = "https://sample-project.supabase.co";
