@@ -1,0 +1,4 @@
+# Git runs hooks from the repository root; the app and its scripts live in web-app/.
+cd web-app
+npm run lint
+npm test

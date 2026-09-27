@@ -10,7 +10,8 @@
     "format": "prettier --write .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "prepare": "cd .. && husky web-app/.husky"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",
