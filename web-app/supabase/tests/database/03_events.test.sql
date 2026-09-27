@@ -91,7 +91,12 @@ select throws_ok(
   'an event name outside the MVP list is rejected'
 );
 select is(
-  (select props from public.events where name = 'run_created'),
+  (
+    select e.props
+    from public.events e
+    join fixture f on e.workspace_id = f.workspace_a
+    where e.name = 'run_created'
+  ),
   '{}'::jsonb,
   'props defaults to an empty object'
 );

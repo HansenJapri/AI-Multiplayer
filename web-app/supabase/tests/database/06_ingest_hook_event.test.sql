@@ -44,7 +44,11 @@ select is(
   'a revoked token is refused'
 );
 select is_empty(
-  $$ select id from public.runs union all select id from public.hook_events $$,
+  $$
+    select r.id from public.runs r join fixture f on r.workspace_id = f.workspace_a
+    union all
+    select h.id from public.hook_events h join fixture f on h.workspace_id = f.workspace_a
+  $$,
   'a refused token stores neither a run nor a hook event'
 );
 
@@ -58,8 +62,9 @@ select isnt(
 );
 select results_eq(
   $$
-    select workspace_id, cli_install_id, hook_event_name, payload
-    from public.hook_events
+    select h.workspace_id, h.cli_install_id, h.hook_event_name, h.payload
+    from public.hook_events h
+    join fixture f on h.workspace_id = f.workspace_a
   $$,
   $$
     select
@@ -72,22 +77,37 @@ select results_eq(
   'the hook event is stored in the install workspace with its payload'
 );
 select results_eq(
-  $$ select workspace_id, claude_session_id from public.runs $$,
+  $$
+    select r.workspace_id, r.claude_session_id
+    from public.runs r
+    join fixture f on r.workspace_id = f.workspace_a
+  $$,
   $$ select workspace_a, 'session-1'::text from fixture $$,
   'the first hook of a session creates its run'
 );
 select results_eq(
-  $$ select workspace_id, run_id, actor_id, name from public.events $$,
+  $$
+    select e.workspace_id, e.run_id, e.actor_id, e.name
+    from public.events e
+    join fixture f on e.workspace_id = f.workspace_a
+  $$,
   $$
     select f.workspace_a, r.id, f.user_a, 'run_created'::text
     from fixture f
-    join public.runs r on r.claude_session_id = 'session-1'
+    join public.runs r on r.workspace_id = f.workspace_a and r.claude_session_id = 'session-1'
   $$,
   'creating a run records run_created with the install user as actor'
 );
 select is(
-  (select h.run_id from public.hook_events h),
-  (select r.id from public.runs r where r.claude_session_id = 'session-1'),
+  (
+    select h.run_id from public.hook_events h join fixture f on h.workspace_id = f.workspace_a
+  ),
+  (
+    select r.id
+    from public.runs r
+    join fixture f on r.workspace_id = f.workspace_a
+    where r.claude_session_id = 'session-1'
+  ),
   'the hook event is linked to the session run'
 );
 
@@ -97,12 +117,21 @@ select isnt(
   'a later hook of the same session is stored'
 );
 select is(
-  (select count(*)::int from public.runs),
+(
+    select count(*)::int
+    from public.runs t
+    join fixture f on t.workspace_id = f.workspace_a
+  ),
   1,
   'a later hook of the same session reuses its run'
 );
 select is(
-  (select count(*)::int from public.events where name = 'run_created'),
+(
+    select count(*)::int
+    from public.events t
+    join fixture f on t.workspace_id = f.workspace_a
+    where t.name = 'run_created'
+  ),
   1,
   'run_created is recorded once per run'
 );
@@ -113,7 +142,11 @@ select isnt(
   'a hook from another session is stored'
 );
 select is(
-  (select count(*)::int from public.runs),
+(
+    select count(*)::int
+    from public.runs t
+    join fixture f on t.workspace_id = f.workspace_a
+  ),
   2,
   'another session gets its own run'
 );
