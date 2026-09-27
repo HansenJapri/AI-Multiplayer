@@ -1,7 +1,7 @@
-export default function Home() {
+export default function HomePage() {
   return (
     <main>
-      <div>Hello world!</div>
+      <h1>AI Multiplayer</h1>
     </main>
   );
 }
