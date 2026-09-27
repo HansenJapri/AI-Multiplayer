@@ -3,7 +3,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 
-select plan(3);
+select plan(4);
 
 select is_empty(
   $$
@@ -33,6 +33,22 @@ select is_empty(
       )
   $$,
   'every public table except workspaces carries a non-null workspace_id'
+);
+
+-- RLS never applies to TRUNCATE, and client roles have no use for REFERENCES or TRIGGER, so
+-- holding any of them would bypass tenant isolation.
+select is_empty(
+  $$
+    select c.relname, client_role.name, privilege.name
+    from pg_class c
+    join pg_namespace n on n.oid = c.relnamespace
+    cross join (values ('anon'), ('authenticated')) as client_role(name)
+    cross join (values ('TRUNCATE'), ('REFERENCES'), ('TRIGGER')) as privilege(name)
+    where n.nspname = 'public'
+      and c.relkind = 'r'
+      and has_table_privilege(client_role.name, c.oid, privilege.name)
+  $$,
+  'anon and authenticated hold no privilege that row level security cannot restrict'
 );
 
 -- Deny-by-default until workspace membership exists; the first member policy must update this.
