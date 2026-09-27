@@ -11,7 +11,10 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "prepare": "cd .. && husky web-app/.husky"
+    "prepare": "cd .. && husky web-app/.husky",
+    "db:start": "supabase db start",
+    "db:reset": "supabase db reset",
+    "test:db": "supabase test db"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",
@@ -32,6 +35,7 @@
     "husky": "^9.1.7",
     "jsdom": "^30.1.1",
     "prettier": "^3.9.9",
+    "supabase": "^2.118.0",
     "typescript": "^5",
     "typescript-eslint": "^8.70.1",
     "vitest": "^5.0.2"
