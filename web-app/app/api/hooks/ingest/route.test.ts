@@ -77,6 +77,16 @@ describe("POST /api/hooks/ingest", () => {
     expect(storeHookEventMock).not.toHaveBeenCalled();
   });
 
+  it("rejects a body over 1 MiB with 413 before touching the database", async () => {
+    const oversizedBody = JSON.stringify({ ...STOP_BODY, padding: "x".repeat(1024 * 1024) });
+
+    const response = await POST(authorizedHookRequest(oversizedBody));
+
+    expect(response.status).toBe(413);
+    expect(await response.json()).toEqual({ error: "hook_payload_too_large" });
+    expect(storeHookEventMock).not.toHaveBeenCalled();
+  });
+
   it("rejects a hook the MVP does not accept", async () => {
     const notification = JSON.stringify({
       session_id: "session-1",

@@ -65,6 +65,7 @@ Claude Code posts each hook call as JSON to `POST /api/hooks/ingest` with
 - `400` — body is not JSON, or not one of `SessionStart`, `UserPromptSubmit`, `PreToolUse`,
   `PostToolUse`, `Stop` with a `session_id`.
 - `401` — token missing, malformed, unknown or revoked (one shared answer).
+- `413` — body larger than 1 MiB.
 - `500` — storage failed. Claude Code treats any non-2xx answer as a non-blocking hook error.
 
 Hook settings the CLI installer will write (token read from an env var, never inlined):
