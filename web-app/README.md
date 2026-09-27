@@ -78,3 +78,14 @@ Hook settings the CLI installer will write (token read from an env var, never in
   "allowedEnvVars": ["AIM_INSTALL_TOKEN"]
 }
 ```
+
+## CI
+
+`.github/workflows/ci.yml` (repository root) runs on every push, every pull request and on demand,
+with Node 24 to match the Vercel project:
+
+- **Lint, test, build** — `npm ci`, `npm run lint`, `npm run typecheck`, `npm test`, `npm run build`.
+- **Database tests (pgTAP)** — `npm run db:start`, `npm run test:db`, then fails if
+  `lib/supabase/database.types.ts` differs from what `npm run db:types` generates.
+
+Use these two job names as required status checks when protecting `main`.
