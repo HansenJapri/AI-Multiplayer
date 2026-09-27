@@ -1,0 +1,64 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Git hooks are for local commits only; skip Husky's install during npm ci.
+  HUSKY: "0"
+
+defaults:
+  run:
+    working-directory: web-app
+
+jobs:
+  web-app:
+    name: Lint, test, build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+
+      # Matches the Node version of the Vercel project (24.x).
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: web-app/package-lock.json
+
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+
+  database:
+    name: Database tests (pgTAP)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: web-app/package-lock.json
+
+      - run: npm ci
+
+      # Starts only Postgres in Docker and applies every migration in supabase/migrations/.
+      - run: npm run db:start
+      - run: npm run test:db
+
+      - name: Generated database types match the migrations
+        run: npm run db:types && git diff --exit-code -- lib/supabase/database.types.ts
