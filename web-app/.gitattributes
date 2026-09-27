@@ -1,0 +1,2 @@
+# Keep LF in the working tree on every OS so Prettier and CI agree on line endings.
+* text=auto eol=lf
