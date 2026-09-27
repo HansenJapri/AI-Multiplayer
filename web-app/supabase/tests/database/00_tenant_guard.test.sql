@@ -3,7 +3,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 
-select plan(4);
+select plan(5);
 
 select is_empty(
   $$
@@ -49,6 +49,21 @@ select is_empty(
       and has_table_privilege(client_role.name, c.oid, privilege.name)
   $$,
   'anon and authenticated hold no privilege that row level security cannot restrict'
+);
+
+-- Functions in public are callable through the Data API as RPC. Only trigger functions (which
+-- cannot be called directly) may stay executable by client roles.
+select is_empty(
+  $$
+    select p.proname, client_role.name
+    from pg_proc p
+    join pg_namespace n on n.oid = p.pronamespace
+    cross join (values ('anon'), ('authenticated')) as client_role(name)
+    where n.nspname = 'public'
+      and p.prorettype <> 'trigger'::regtype
+      and has_function_privilege(client_role.name, p.oid, 'EXECUTE')
+  $$,
+  'anon and authenticated cannot execute any public function'
 );
 
 -- Deny-by-default until workspace membership exists; the first member policy must update this.
