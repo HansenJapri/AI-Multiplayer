@@ -1,18 +1,11 @@
-import { createSupabaseAdminClient } from "@/lib/supabase/admin-client";
+import { readAccountEmail } from "@/lib/accounts/account-email";
 import { createSupabaseServerClient } from "@/lib/supabase/server-client";
 import { WorkspaceStoreError, type WorkspaceRole } from "./workspaces";
-
-const UNKNOWN_ACCOUNT_EMAIL = "unknown account";
 
 export interface WorkspaceMember {
   userId: string;
   email: string;
   role: WorkspaceRole;
-}
-
-async function readAccountEmail(userId: string): Promise<string> {
-  const { data } = await createSupabaseAdminClient().auth.admin.getUserById(userId);
-  return data.user?.email ?? UNKNOWN_ACCOUNT_EMAIL;
 }
 
 // Membership is read through the user's session first, so row level security decides whose

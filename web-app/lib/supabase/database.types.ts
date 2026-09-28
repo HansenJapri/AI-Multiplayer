@@ -155,6 +155,83 @@ export type Database = {
           },
         ];
       };
+      run_comments: {
+        Row: {
+          author_id: string;
+          body: string;
+          created_at: string;
+          hook_event_id: string | null;
+          id: string;
+          run_id: string;
+          workspace_id: string;
+        };
+        Insert: {
+          author_id: string;
+          body: string;
+          created_at?: string;
+          hook_event_id?: string | null;
+          id?: string;
+          run_id: string;
+          workspace_id: string;
+        };
+        Update: {
+          author_id?: string;
+          body?: string;
+          created_at?: string;
+          hook_event_id?: string | null;
+          id?: string;
+          run_id?: string;
+          workspace_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "run_comments_workspace_id_hook_event_id_fkey";
+            columns: ["workspace_id", "hook_event_id"];
+            isOneToOne: false;
+            referencedRelation: "hook_events";
+            referencedColumns: ["workspace_id", "id"];
+          },
+          {
+            foreignKeyName: "run_comments_workspace_id_run_id_fkey";
+            columns: ["workspace_id", "run_id"];
+            isOneToOne: false;
+            referencedRelation: "runs";
+            referencedColumns: ["workspace_id", "id"];
+          },
+        ];
+      };
+      run_participants: {
+        Row: {
+          first_seen_at: string;
+          role: string;
+          run_id: string;
+          user_id: string;
+          workspace_id: string;
+        };
+        Insert: {
+          first_seen_at?: string;
+          role: string;
+          run_id: string;
+          user_id: string;
+          workspace_id: string;
+        };
+        Update: {
+          first_seen_at?: string;
+          role?: string;
+          run_id?: string;
+          user_id?: string;
+          workspace_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "run_participants_workspace_id_run_id_fkey";
+            columns: ["workspace_id", "run_id"];
+            isOneToOne: false;
+            referencedRelation: "runs";
+            referencedColumns: ["workspace_id", "id"];
+          },
+        ];
+      };
       runs: {
         Row: {
           claude_session_id: string;
@@ -284,6 +361,15 @@ export type Database = {
         Args: { p_token_hash: string; p_user_email: string; p_user_id: string };
         Returns: string;
       };
+      approve_cli_device_login: {
+        Args: { p_user_code: string; p_user_id: string; p_workspace_id: string };
+        Returns: boolean;
+      };
+      claim_cli_device_login: {
+        Args: { p_device_code_hash: string; p_install_token_hash: string };
+        Returns: string;
+      };
+      cli_device_login_status: { Args: { p_device_code_hash: string }; Returns: string };
       create_workspace_invite: {
         Args: {
           p_email: string;
@@ -305,6 +391,15 @@ export type Database = {
           p_token_hash: string;
         };
         Returns: string;
+      };
+      post_run_comment: {
+        Args: { p_author_id: string; p_body: string; p_hook_event_id: string; p_run_id: string };
+        Returns: string;
+      };
+      record_run_view: { Args: { p_run_id: string; p_user_id: string }; Returns: string };
+      start_cli_device_login: {
+        Args: { p_device_code_hash: string; p_user_code: string };
+        Returns: undefined;
       };
     };
     Enums: {

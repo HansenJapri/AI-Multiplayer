@@ -7,5 +7,5 @@ export function proxy(request: NextRequest) {
 
 export const config = {
   // Hook calls and health checks carry no browser session, so they skip the session refresh.
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|api/hooks|api/health).*)"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|api/hooks|api/cli|api/health).*)"],
 };

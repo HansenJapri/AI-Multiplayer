@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "prebuild": "npm run cli:build",
     "build": "next build",
     "start": "next start",
     "lint": "eslint --max-warnings=0 && prettier --check .",
@@ -15,7 +16,8 @@
     "db:start": "supabase db start",
     "db:reset": "supabase db reset",
     "test:db": "supabase test db",
-    "db:types": "supabase gen types typescript --local > lib/supabase/database.types.ts && prettier --write lib/supabase/database.types.ts"
+    "db:types": "supabase gen types typescript --local > lib/supabase/database.types.ts && prettier --write lib/supabase/database.types.ts",
+    "cli:build": "tsc -p cli/tsconfig.build.json && node scripts/pack-cli.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",

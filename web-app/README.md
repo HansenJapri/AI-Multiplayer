@@ -28,6 +28,7 @@ before every commit.
 | `npm run db:start`   | Start the local Postgres container (needs Docker)                   |
 | `npm run db:reset`   | Recreate the local database from `supabase/migrations/`             |
 | `npm run test:db`    | Run the pgTAP suite in `supabase/tests/database/`                   |
+| `npm run cli:build`  | Compile the aim CLI and pack it into `public/aim.tgz`               |
 | `npm run db:types`   | Regenerate `lib/supabase/database.types.ts` from the local database |
 
 ## Layout
@@ -68,22 +69,17 @@ Claude Code posts each hook call as JSON to `POST /api/hooks/ingest` with
 - `413` — body larger than 1 MiB.
 - `500` — storage failed. Claude Code treats any non-2xx answer as a non-blocking hook error.
 
-Hook settings the CLI installer will write (token read from an env var, never inlined):
+The `aim` CLI (`cli/`) registers the hooks. `aim login` runs a device-code flow
+(`/api/cli/device-logins`, approved at `/cli/activate`) and stores the install token in
+`~/.aim/credentials.json`. `aim install` copies the hook runtime to `~/.aim/runtime` and adds a
+`command` hook for each of the five events to the project's `.claude/settings.local.json`
+(excluded from git). The runtime posts the hook JSON here with the token, adds the latest token
+usage from the transcript, and prints the reply as hook output. Command hooks are used because
+Claude Code 2.1.216 skips `http` hooks on `SessionStart` ("HTTP hooks are not supported for
+SessionStart"), and because the token then never appears in a repository file.
 
-```json
-{
-  "type": "http",
-  "url": "https://<deployment>/api/hooks/ingest",
-  "headers": { "Authorization": "Bearer $AIM_INSTALL_TOKEN" },
-  "allowedEnvVars": ["AIM_INSTALL_TOKEN"]
-}
-```
-
-Verified against a real Claude Code 2.1.216 session: `UserPromptSubmit`, `PreToolUse`,
-`PostToolUse` and `Stop` arrive over `http`, but Claude Code skips `http` hooks on `SessionStart`
-(debug log: "HTTP hooks are not supported for SessionStart"). A run is still created by the
-first hook that arrives. To record `SessionStart`, the installer must register a `command` hook
-that posts the same JSON to this endpoint.
+The CLI is packed into `public/aim.tgz` by `npm run cli:build` (run automatically before
+`npm run build`), so users run it with `npx --yes https://<site>/aim.tgz <command>`.
 
 ## CI
 
