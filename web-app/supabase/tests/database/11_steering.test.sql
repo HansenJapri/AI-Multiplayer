@@ -1,7 +1,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 
-select plan(27);
+select plan(28);
 
 create temp table fixture as
 select
@@ -12,7 +12,7 @@ select
   gen_random_uuid() as run_a,
   encode(sha256('token-a'::bytea), 'hex') as token_hash_a;
 
-grant select on fixture to anon, authenticated;
+grant select on fixture to anon, authenticated, service_role;
 
 insert into auth.users (id, email)
 select owner_a, 'steer-owner@fixture.test' from fixture
@@ -174,6 +174,22 @@ select is(
   null,
   'an unknown token still stores nothing'
 );
+
+-- The hook route calls ingest as service_role, which may not read auth.users directly; the
+-- directive must still resolve the hold owner's email.
+select public.raise_run_hold((select run_a from fixture), (select owner_a from fixture), 'Check');
+set local role service_role;
+select results_eq(
+  $$
+    select public.ingest_hook_event(
+      (select token_hash_a from pg_temp.fixture), 'session-a', 'PreToolUse', '{}'::jsonb
+    ) -> 'hold'
+  $$,
+  $$ values ('{"raised_by_email": "steer-owner@fixture.test", "reason": "Check"}'::jsonb) $$,
+  'the server role gets the directive, including the email of whoever holds the run'
+);
+reset role;
+select public.release_run_hold((select run_a from fixture), (select owner_a from fixture));
 
 set local role authenticated;
 select set_config(
