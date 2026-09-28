@@ -143,7 +143,7 @@ select throws_ok(
   'hook events cannot be deleted'
 );
 -- Refused by the append-only trigger, or earlier by Postgres once other tables reference steps.
-select throws_ok($$ truncate public.hook_events $$, 'hook events cannot be truncated');
+select throws_ok($$ truncate public.hook_events $$, null, null, 'hook events cannot be truncated');
 
 set local role anon;
 select is_empty($$ select id from public.hook_events $$, 'anon cannot read hook_events');
