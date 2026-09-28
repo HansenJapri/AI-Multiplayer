@@ -79,6 +79,12 @@ Hook settings the CLI installer will write (token read from an env var, never in
 }
 ```
 
+Verified against a real Claude Code 2.1.216 session: `UserPromptSubmit`, `PreToolUse`,
+`PostToolUse` and `Stop` arrive over `http`, but Claude Code skips `http` hooks on `SessionStart`
+(debug log: "HTTP hooks are not supported for SessionStart"). A run is still created by the
+first hook that arrives. To record `SessionStart`, the installer must register a `command` hook
+that posts the same JSON to this endpoint.
+
 ## CI
 
 `.github/workflows/ci.yml` (repository root) runs on every push, every pull request and on demand,
