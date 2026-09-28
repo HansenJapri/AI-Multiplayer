@@ -126,6 +126,7 @@ describe("loadRunForViewer", () => {
         {
           id: "comment-1",
           stepId: "event-1",
+          authorId: "user-1",
           authorEmail: "owner@agency.example",
           body: "Looks right",
           receivedAt: "2026-09-28T10:00:02Z",

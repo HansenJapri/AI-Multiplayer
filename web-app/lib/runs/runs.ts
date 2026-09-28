@@ -14,6 +14,7 @@ export interface RunSummary {
 export interface RunComment {
   id: string;
   stepId: string | null;
+  authorId: string;
   authorEmail: string;
   body: string;
   receivedAt: string;
@@ -116,6 +117,7 @@ export async function loadRunForViewer(
     comments: comments.map((comment) => ({
       id: comment.id,
       stepId: comment.hook_event_id,
+      authorId: comment.author_id,
       authorEmail: authorEmails.get(comment.author_id) ?? "",
       body: comment.body,
       receivedAt: comment.created_at,
