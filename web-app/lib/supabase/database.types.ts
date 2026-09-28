@@ -361,6 +361,15 @@ export type Database = {
         Args: { p_token_hash: string; p_user_email: string; p_user_id: string };
         Returns: string;
       };
+      approve_cli_device_login: {
+        Args: { p_user_code: string; p_user_id: string; p_workspace_id: string };
+        Returns: boolean;
+      };
+      claim_cli_device_login: {
+        Args: { p_device_code_hash: string; p_install_token_hash: string };
+        Returns: string;
+      };
+      cli_device_login_status: { Args: { p_device_code_hash: string }; Returns: string };
       create_workspace_invite: {
         Args: {
           p_email: string;
@@ -388,6 +397,10 @@ export type Database = {
         Returns: string;
       };
       record_run_view: { Args: { p_run_id: string; p_user_id: string }; Returns: string };
+      start_cli_device_login: {
+        Args: { p_device_code_hash: string; p_user_code: string };
+        Returns: undefined;
+      };
     };
     Enums: {
       [_ in never]: never;
