@@ -115,37 +115,62 @@ export function LiveRun({ run, viewer }: { run: RunForViewer; viewer: Viewer }) 
     );
     const supabase = createSupabaseBrowserClient();
     const channel = supabase.channel(`run:${run.id}`, { config: { presence: { key: viewer.id } } });
-    channel
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "hook_events", filter: `run_id=eq.${run.id}` },
-        (payload: InsertedRow) => {
-          setSteps((current) =>
-            mergeTimelineItems(current, [
-              describeTimelineStep(payload.new as unknown as HookEventRow),
-            ]),
-          );
-        },
-      )
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "run_comments", filter: `run_id=eq.${run.id}` },
-        (payload: InsertedRow) => {
-          setComments((current) =>
-            mergeTimelineItems(current, [commentFromRow(payload.new, viewer, knownEmails)]),
-          );
-        },
-      )
-      .on("presence", { event: "sync" }, () => {
-        const present = Object.values(channel.presenceState<PresenceEntry>()).flat();
-        setWatchers([...new Set(present.map((entry) => entry.email))]);
-      })
-      .subscribe((status) => {
-        if (status === REALTIME_SUBSCRIBE_STATES.SUBSCRIBED) {
-          void channel.track({ email: viewer.email });
-        }
-      });
+    let leftBeforeSubscribing = false;
+
+    async function subscribeAsViewer() {
+      // Realtime otherwise joins as anon, and row level security then delivers no inserts.
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      await supabase.realtime.setAuth(session?.access_token ?? null);
+      if (leftBeforeSubscribing) {
+        return;
+      }
+      channel
+        .on(
+          "postgres_changes",
+          {
+            event: "INSERT",
+            schema: "public",
+            table: "hook_events",
+            filter: `run_id=eq.${run.id}`,
+          },
+          (payload: InsertedRow) => {
+            setSteps((current) =>
+              mergeTimelineItems(current, [
+                describeTimelineStep(payload.new as unknown as HookEventRow),
+              ]),
+            );
+          },
+        )
+        .on(
+          "postgres_changes",
+          {
+            event: "INSERT",
+            schema: "public",
+            table: "run_comments",
+            filter: `run_id=eq.${run.id}`,
+          },
+          (payload: InsertedRow) => {
+            setComments((current) =>
+              mergeTimelineItems(current, [commentFromRow(payload.new, viewer, knownEmails)]),
+            );
+          },
+        )
+        .on("presence", { event: "sync" }, () => {
+          const present = Object.values(channel.presenceState<PresenceEntry>()).flat();
+          setWatchers([...new Set(present.map((entry) => entry.email))]);
+        })
+        .subscribe((status) => {
+          if (status === REALTIME_SUBSCRIBE_STATES.SUBSCRIBED) {
+            void channel.track({ email: viewer.email });
+          }
+        });
+    }
+
+    void subscribeAsViewer();
     return () => {
+      leftBeforeSubscribing = true;
       void supabase.removeChannel(channel);
     };
   }, [run.id, run.comments, viewer]);
