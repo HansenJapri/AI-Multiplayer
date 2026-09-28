@@ -1,6 +1,7 @@
 import { storeHookEvent } from "@/lib/hooks/hook-event-store";
 import { parseHookPayload } from "@/lib/hooks/hook-payload";
-import { extractBearerToken, hashInstallToken } from "@/lib/hooks/install-token";
+import { extractBearerToken } from "@/lib/hooks/install-token";
+import { hashOpaqueToken } from "@/lib/security/opaque-token";
 
 // Bounds what one hook call can store; well under Vercel's 4.5 MB request limit, and far above
 // a typical hook body. Claude Code treats the 413 as a non-blocking hook error.
@@ -67,7 +68,7 @@ export async function POST(request: Request): Promise<Response> {
   }
 
   try {
-    const result = await storeHookEvent(hashInstallToken(installToken), payload);
+    const result = await storeHookEvent(hashOpaqueToken(installToken), payload);
     return result.status === "stored" ? emptyHookOutputResponse() : unauthorizedResponse();
   } catch (error) {
     // Log only the error message: it never contains the token, and store errors omit the payload.

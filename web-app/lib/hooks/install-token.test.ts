@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, expect, it } from "vitest";
-import { extractBearerToken, hashInstallToken } from "./install-token";
+import { extractBearerToken } from "./install-token";
 
 describe("extractBearerToken", () => {
   it("returns the token from a Bearer authorization header", () => {
@@ -31,14 +31,5 @@ describe("extractBearerToken", () => {
 
   it("rejects a token that contains whitespace", () => {
     expect(extractBearerToken("Bearer two parts")).toBeNull();
-  });
-});
-
-describe("hashInstallToken", () => {
-  it("returns the lowercase hex SHA-256 digest of the token", () => {
-    // Published SHA-256 test vector for "abc" (FIPS 180-2, appendix B.1).
-    expect(hashInstallToken("abc")).toBe(
-      "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
-    );
   });
 });

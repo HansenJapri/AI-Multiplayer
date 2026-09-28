@@ -1,12 +1,15 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import type { Database } from "./database.types";
 import { readSupabasePublicEnv } from "./env";
 
 export async function createSupabaseServerClient() {
-  const { url, anonKey } = readSupabasePublicEnv();
+  // Reading cookies first marks the calling route as dynamic, so Next.js never tries to
+  // prerender a signed-in page at build time, where the Supabase env is absent.
   const cookieStore = await cookies();
+  const { url, anonKey } = readSupabasePublicEnv();
 
-  return createServerClient(url, anonKey, {
+  return createServerClient<Database>(url, anonKey, {
     cookies: {
       getAll() {
         return cookieStore.getAll();

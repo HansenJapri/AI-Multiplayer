@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { HookEventStoreError } from "@/lib/hooks/hook-event-store";
-import { hashInstallToken } from "@/lib/hooks/install-token";
+import { hashOpaqueToken } from "@/lib/security/opaque-token";
 import { POST } from "./route";
 
 const { storeHookEventMock } = vi.hoisted(() => ({ storeHookEventMock: vi.fn() }));
@@ -41,7 +41,7 @@ describe("POST /api/hooks/ingest", () => {
 
     const response = await POST(authorizedHookRequest());
 
-    expect(storeHookEventMock).toHaveBeenCalledWith(hashInstallToken(INSTALL_TOKEN), {
+    expect(storeHookEventMock).toHaveBeenCalledWith(hashOpaqueToken(INSTALL_TOKEN), {
       claudeSessionId: "session-1",
       hookEventName: "Stop",
       body: STOP_BODY,

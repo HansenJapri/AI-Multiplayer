@@ -66,10 +66,15 @@ select is_empty(
   'anon and authenticated cannot execute any public function'
 );
 
--- Deny-by-default until workspace membership exists; the first member policy must update this.
+-- Policies are for signed-in users only. A policy without an explicit role applies to PUBLIC,
+-- which includes anon, so every policy must name authenticated.
 select is_empty(
-  $$ select tablename, policyname from pg_policies where schemaname = 'public' $$,
-  'no row level security policy grants access yet'
+  $$
+    select tablename, policyname, roles
+    from pg_policies
+    where schemaname = 'public' and not (roles <@ array['authenticated']::name[])
+  $$,
+  'every row level security policy applies to authenticated only'
 );
 
 select * from finish();
