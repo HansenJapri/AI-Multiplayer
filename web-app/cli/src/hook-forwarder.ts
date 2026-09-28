@@ -9,12 +9,15 @@ export interface AimCredentials {
 export interface HookForwarderDependencies {
   readCredentials: () => Promise<AimCredentials | null>;
   readTranscript: (transcriptPath: string) => Promise<string | null>;
+  // Fire and forget: snapshots and uploads a checkpoint in a separate process.
+  startCheckpoint: (hookBody: string) => void;
   fetch: typeof fetch;
 }
 
 // Well under the hook timeout, so a slow server never holds up the agent for long.
 const INGEST_TIMEOUT_MILLISECONDS = 5000;
 const EVENTS_WITH_USAGE = new Set(["PostToolUse", "Stop"]);
+const CHECKPOINT_EVENT = "Stop";
 
 function parseHookBody(hookBody: string): Record<string, unknown> | null {
   try {
@@ -54,6 +57,9 @@ export async function forwardHook(
   dependencies: HookForwarderDependencies,
 ): Promise<string> {
   try {
+    if (parseHookBody(hookBody)?.hook_event_name === CHECKPOINT_EVENT) {
+      dependencies.startCheckpoint(hookBody);
+    }
     const credentials = await dependencies.readCredentials();
     if (credentials === null) {
       return "";

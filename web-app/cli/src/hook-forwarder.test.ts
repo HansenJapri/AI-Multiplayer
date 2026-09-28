@@ -14,6 +14,7 @@ function dependencies(
   return {
     readCredentials: () => Promise.resolve(CREDENTIALS),
     readTranscript: () => Promise.resolve(null),
+    startCheckpoint: vi.fn(),
     fetch: vi.fn(() => Promise.resolve(new Response('{"hookSpecificOutput":{}}', { status: 200 }))),
     ...overrides,
   };
@@ -63,6 +64,17 @@ describe("forwardHook", () => {
     }
     const sentBody = JSON.parse(sentRequestBody) as { aim_usage: { output_tokens: number } };
     expect(sentBody.aim_usage.output_tokens).toBe(8);
+  });
+
+  it("starts a checkpoint in the background at the end of each turn", async () => {
+    const deps = dependencies();
+    const stopBody = JSON.stringify({ session_id: "s1", hook_event_name: "Stop" });
+
+    await forwardHook(stopBody, deps);
+    await forwardHook(JSON.stringify({ session_id: "s1", hook_event_name: "PreToolUse" }), deps);
+
+    expect(deps.startCheckpoint).toHaveBeenCalledTimes(1);
+    expect(deps.startCheckpoint).toHaveBeenCalledWith(stopBody);
   });
 
   it("stays silent when the machine is not logged in", async () => {
