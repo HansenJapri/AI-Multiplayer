@@ -142,12 +142,8 @@ select throws_ok(
   'hook_events is append-only',
   'hook events cannot be deleted'
 );
-select throws_ok(
-  $$ truncate public.hook_events $$,
-  'P0001',
-  'hook_events is append-only',
-  'hook events cannot be truncated'
-);
+-- Refused by the append-only trigger, or earlier by Postgres once other tables reference steps.
+select throws_ok($$ truncate public.hook_events $$, 'hook events cannot be truncated');
 
 set local role anon;
 select is_empty($$ select id from public.hook_events $$, 'anon cannot read hook_events');
