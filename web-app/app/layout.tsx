@@ -1,0 +1,14 @@
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "AI Multiplayer",
+  description: "Watch, steer, and hand over Claude Code sessions with your team.",
+};
+
+export default function RootLayout({ children }: LayoutProps<"/">) {
+  return (
+    <html lang="en">
+      <body>{children}</body>
+    </html>
+  );
+}
