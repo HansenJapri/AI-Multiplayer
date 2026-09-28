@@ -23,7 +23,9 @@ function queryResolving(result: { data: unknown; error: unknown }) {
     select: vi.fn(() => query),
     eq: vi.fn(() => query),
     order: vi.fn(() => query),
+    is: vi.fn(() => query),
     single: vi.fn(() => Promise.resolve(result)),
+    maybeSingle: vi.fn(() => Promise.resolve(result)),
     then: (resolve: (value: unknown) => unknown) => Promise.resolve(result).then(resolve),
   };
   fromMock.mockReturnValueOnce(query);
@@ -99,7 +101,20 @@ describe("loadRunForViewer", () => {
       ],
       error: null,
     });
-    getUserByIdMock.mockResolvedValueOnce({ data: { user: { email: "owner@agency.example" } } });
+    queryResolving({
+      data: [
+        {
+          id: "steer-1",
+          author_id: "user-1",
+          body: "Use the helper",
+          created_at: "2026-09-28T10:00:04Z",
+          delivered_at: null,
+        },
+      ],
+      error: null,
+    });
+    queryResolving({ data: { raised_by: "user-1", reason: "Reviewing" }, error: null });
+    getUserByIdMock.mockResolvedValue({ data: { user: { email: "owner@agency.example" } } });
 
     const run = await loadRunForViewer("run-1", "user-2");
 
@@ -132,6 +147,17 @@ describe("loadRunForViewer", () => {
           receivedAt: "2026-09-28T10:00:02Z",
         },
       ],
+      steerMessages: [
+        {
+          id: "steer-1",
+          authorId: "user-1",
+          authorEmail: "owner@agency.example",
+          body: "Use the helper",
+          receivedAt: "2026-09-28T10:00:04Z",
+          deliveredAt: null,
+        },
+      ],
+      hold: { raisedByEmail: "owner@agency.example", reason: "Reviewing" },
     });
   });
 });

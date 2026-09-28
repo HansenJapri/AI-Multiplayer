@@ -20,6 +20,20 @@ export interface RunComment {
   receivedAt: string;
 }
 
+export interface SteerMessage {
+  id: string;
+  authorId: string;
+  authorEmail: string;
+  body: string;
+  receivedAt: string;
+  deliveredAt: string | null;
+}
+
+export interface RunHold {
+  raisedByEmail: string;
+  reason: string;
+}
+
 export interface RunForViewer {
   id: string;
   workspaceId: string;
@@ -28,6 +42,8 @@ export interface RunForViewer {
   viewerRole: RunViewerRole;
   steps: TimelineStep[];
   comments: RunComment[];
+  steerMessages: SteerMessage[];
+  hold: RunHold | null;
 }
 
 // Carries only the Postgres error code: PostgREST details can quote row values.
@@ -106,7 +122,30 @@ export async function loadRunForViewer(
     throw new RunStoreError(commentsError.code);
   }
 
-  const authorEmails = await readAccountEmails(comments.map((comment) => comment.author_id));
+  const { data: steerMessages, error: steerError } = await supabase
+    .from("steer_messages")
+    .select("id, author_id, body, created_at, delivered_at")
+    .eq("run_id", runId)
+    .order("created_at");
+  if (steerError) {
+    throw new RunStoreError(steerError.code);
+  }
+
+  const { data: activeHold, error: holdError } = await supabase
+    .from("run_holds")
+    .select("raised_by, reason")
+    .eq("run_id", runId)
+    .is("released_at", null)
+    .maybeSingle();
+  if (holdError) {
+    throw new RunStoreError(holdError.code);
+  }
+
+  const authorEmails = await readAccountEmails([
+    ...comments.map((comment) => comment.author_id),
+    ...steerMessages.map((message) => message.author_id),
+    ...(activeHold === null ? [] : [activeHold.raised_by]),
+  ]);
   return {
     id: run.id,
     workspaceId: run.workspace_id,
@@ -122,6 +161,21 @@ export async function loadRunForViewer(
       body: comment.body,
       receivedAt: comment.created_at,
     })),
+    steerMessages: steerMessages.map((message) => ({
+      id: message.id,
+      authorId: message.author_id,
+      authorEmail: authorEmails.get(message.author_id) ?? "",
+      body: message.body,
+      receivedAt: message.created_at,
+      deliveredAt: message.delivered_at,
+    })),
+    hold:
+      activeHold === null
+        ? null
+        : {
+            raisedByEmail: authorEmails.get(activeHold.raised_by) ?? "",
+            reason: activeHold.reason,
+          },
   };
 }
 
