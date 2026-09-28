@@ -37,7 +37,11 @@ describe("POST /api/hooks/ingest", () => {
   });
 
   it("stores the hook under the hashed install token and answers with an empty hook output", async () => {
-    storeHookEventMock.mockResolvedValueOnce({ status: "stored", hookEventId: "hook-event-id" });
+    storeHookEventMock.mockResolvedValueOnce({
+      status: "stored",
+      hookEventId: "hook-event-id",
+      directive: { hold: null, steerMessages: [] },
+    });
 
     const response = await POST(authorizedHookRequest());
 
@@ -48,6 +52,25 @@ describe("POST /api/hooks/ingest", () => {
     });
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({});
+  });
+
+  it("answers with the hook output that holds or steers the agent", async () => {
+    storeHookEventMock.mockResolvedValueOnce({
+      status: "stored",
+      hookEventId: "hook-event-id",
+      directive: { hold: { raisedByEmail: "owner@agency.test", reason: "" }, steerMessages: [] },
+    });
+    const preToolUse = JSON.stringify({ session_id: "session-1", hook_event_name: "PreToolUse" });
+
+    const response = await POST(authorizedHookRequest(preToolUse));
+
+    expect(await response.json()).toEqual({
+      hookSpecificOutput: {
+        hookEventName: "PreToolUse",
+        permissionDecision: "deny",
+        permissionDecisionReason: "paused by owner@agency.test",
+      },
+    });
   });
 
   it("rejects a request without a Bearer token before touching the database", async () => {

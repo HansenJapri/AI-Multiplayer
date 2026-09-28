@@ -21,8 +21,11 @@ describe("storeHookEvent", () => {
     vi.clearAllMocks();
   });
 
-  it("stores the hook through ingest_hook_event and returns the new hook event id", async () => {
-    rpcMock.mockResolvedValueOnce({ data: "hook-event-id", error: null });
+  it("stores the hook through ingest_hook_event and returns its id with an empty directive", async () => {
+    rpcMock.mockResolvedValueOnce({
+      data: { hook_event_id: "hook-event-id", hold: null, steer_messages: [] },
+      error: null,
+    });
 
     const result = await storeHookEvent(TOKEN_HASH, STOP_PAYLOAD);
 
@@ -32,7 +35,33 @@ describe("storeHookEvent", () => {
       p_hook_event_name: "Stop",
       p_payload: STOP_PAYLOAD.body,
     });
-    expect(result).toEqual({ status: "stored", hookEventId: "hook-event-id" });
+    expect(result).toEqual({
+      status: "stored",
+      hookEventId: "hook-event-id",
+      directive: { hold: null, steerMessages: [] },
+    });
+  });
+
+  it("returns the hold and the steer messages the database hands back", async () => {
+    rpcMock.mockResolvedValueOnce({
+      data: {
+        hook_event_id: "hook-event-id",
+        hold: { raised_by_email: "owner@agency.test", reason: "Wait" },
+        steer_messages: [{ author_email: "driver@agency.test", body: "Use the helper" }],
+      },
+      error: null,
+    });
+
+    const result = await storeHookEvent(TOKEN_HASH, STOP_PAYLOAD);
+
+    expect(result).toEqual({
+      status: "stored",
+      hookEventId: "hook-event-id",
+      directive: {
+        hold: { raisedByEmail: "owner@agency.test", reason: "Wait" },
+        steerMessages: [{ authorEmail: "driver@agency.test", body: "Use the helper" }],
+      },
+    });
   });
 
   it("reports an unknown or revoked install token when nothing was stored", async () => {
