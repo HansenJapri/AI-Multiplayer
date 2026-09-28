@@ -184,6 +184,35 @@ export type Database = {
           },
         ];
       };
+      workspace_members: {
+        Row: {
+          created_at: string;
+          role: string;
+          user_id: string;
+          workspace_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          role: string;
+          user_id: string;
+          workspace_id: string;
+        };
+        Update: {
+          created_at?: string;
+          role?: string;
+          user_id?: string;
+          workspace_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "workspace_members_workspace_id_fkey";
+            columns: ["workspace_id"];
+            isOneToOne: false;
+            referencedRelation: "workspaces";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       workspaces: {
         Row: {
           created_at: string;
@@ -207,6 +236,10 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
+      create_workspace_with_owner: {
+        Args: { p_name: string; p_owner_id: string };
+        Returns: string;
+      };
       ingest_hook_event: {
         Args: {
           p_claude_session_id: string;
