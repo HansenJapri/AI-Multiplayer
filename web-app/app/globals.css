@@ -1,0 +1,190 @@
+:root {
+  --color-bg: #f7f7f5;
+  --color-surface: #ffffff;
+  --color-text: #1b1c1f;
+  --color-muted: #5f6368;
+  --color-border: #e3e3df;
+  --color-accent: #3b5bdb;
+  --color-accent-contrast: #ffffff;
+  --color-danger: #c92a2a;
+  --color-success: #2b8a3e;
+  --color-warning: #e67700;
+  --radius: 10px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-bg: #121316;
+    --color-surface: #1b1c20;
+    --color-text: #ececef;
+    --color-muted: #a0a3ab;
+    --color-border: #2c2e34;
+    --color-accent: #748ffc;
+    --color-accent-contrast: #0b0c0f;
+    --color-danger: #ff8787;
+    --color-success: #69db7c;
+    --color-warning: #ffa94d;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  line-height: 1.5;
+}
+
+a {
+  color: var(--color-accent);
+}
+
+main {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: var(--space-8) var(--space-4);
+}
+
+h1 {
+  font-size: 1.75rem;
+  margin: 0 0 var(--space-4);
+}
+
+h2 {
+  font-size: 1.15rem;
+  margin: var(--space-8) 0 var(--space-3);
+}
+
+.muted {
+  color: var(--color-muted);
+}
+
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: var(--space-6);
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-2);
+}
+
+.list-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  text-decoration: none;
+  color: inherit;
+}
+
+.badge {
+  font-size: 0.75rem;
+  padding: 2px var(--space-2);
+  border-radius: 999px;
+  border: 1px solid var(--color-border);
+  color: var(--color-muted);
+  white-space: nowrap;
+}
+
+.form {
+  display: grid;
+  gap: var(--space-3);
+  max-width: 420px;
+}
+
+.form label {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+input[type="email"],
+input[type="text"],
+textarea {
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface);
+  color: inherit;
+  font: inherit;
+}
+
+.button {
+  display: inline-block;
+  padding: var(--space-2) var(--space-4);
+  border: 0;
+  border-radius: 8px;
+  background: var(--color-accent);
+  color: var(--color-accent-contrast);
+  font: inherit;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.button:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+.button-quiet {
+  background: transparent;
+  color: var(--color-muted);
+  border: 1px solid var(--color-border);
+}
+
+.message-error {
+  color: var(--color-danger);
+}
+
+.message-success {
+  color: var(--color-success);
+}
+
+.code {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  word-break: break-all;
+  white-space: pre-wrap;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: var(--space-2) var(--space-3);
+}
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  max-width: 880px;
+  margin: 0 auto;
+  padding: var(--space-4);
+}
+
+.brand {
+  font-weight: 700;
+  color: inherit;
+  text-decoration: none;
+}
