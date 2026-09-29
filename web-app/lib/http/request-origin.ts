@@ -3,7 +3,7 @@ function firstHeaderValue(headers: Headers, name: string): string | null {
   return value === null ? null : (value.split(",")[0]?.trim() ?? null);
 }
 
-// Links sent by email (magic links, invites) must point back at the host the user is on,
+// Links sent by email or shared by hand (invites, guest links) must point back at the host the user is on,
 // which behind Vercel's proxy is only visible in the x-forwarded-* headers.
 export function originFromHeaders(headers: Headers): string {
   const host = firstHeaderValue(headers, "x-forwarded-host") ?? firstHeaderValue(headers, "host");

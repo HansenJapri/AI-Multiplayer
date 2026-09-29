@@ -1,20 +1,17 @@
 // @vitest-environment node
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { sendMagicLink } from "./actions";
+import { signInAction } from "./actions";
 
-const { signInWithOtpMock } = vi.hoisted(() => ({ signInWithOtpMock: vi.fn() }));
+const { signInWithPasswordMock } = vi.hoisted(() => ({ signInWithPasswordMock: vi.fn() }));
 
 vi.mock("@/lib/supabase/server-client", () => ({
-  createSupabaseServerClient: () => Promise.resolve({ auth: { signInWithOtp: signInWithOtpMock } }),
+  createSupabaseServerClient: () =>
+    Promise.resolve({ auth: { signInWithPassword: signInWithPasswordMock } }),
 }));
-vi.mock("next/headers", () => ({
-  headers: () =>
-    Promise.resolve(
-      new Headers({
-        "x-forwarded-proto": "https",
-        "x-forwarded-host": "ai-multiplayer.vercel.app",
-      }),
-    ),
+vi.mock("next/navigation", () => ({
+  redirect: (url: string) => {
+    throw new Error(`REDIRECT ${url}`);
+  },
 }));
 
 function loginForm(fields: Record<string, string>): FormData {
@@ -25,49 +22,87 @@ function loginForm(fields: Record<string, string>): FormData {
   return formData;
 }
 
-describe("sendMagicLink", () => {
+describe("signInAction", () => {
   afterEach(() => {
-    signInWithOtpMock.mockReset();
+    signInWithPasswordMock.mockReset();
   });
 
-  it("emails a magic link that returns to the auth callback with the requested next path", async () => {
-    signInWithOtpMock.mockResolvedValueOnce({ error: null });
+  it("signs in with email and password, then returns to the requested page", async () => {
+    signInWithPasswordMock.mockResolvedValueOnce({ error: null });
 
-    const state = await sendMagicLink(
-      { status: "idle" },
-      loginForm({ email: " Dev@Agency.Example ", next: "/invite/abc" }),
-    );
-
-    expect(state).toEqual({ status: "sent", email: "dev@agency.example" });
-    expect(signInWithOtpMock).toHaveBeenCalledWith({
+    await expect(
+      signInAction(
+        { status: "idle" },
+        loginForm({
+          email: " Dev@Agency.Example ",
+          password: "correct horse",
+          next: "/invite/abc",
+        }),
+      ),
+    ).rejects.toThrow("REDIRECT /invite/abc");
+    expect(signInWithPasswordMock).toHaveBeenCalledWith({
       email: "dev@agency.example",
-      options: {
-        emailRedirectTo: "https://ai-multiplayer.vercel.app/auth/callback?next=%2Finvite%2Fabc",
-        shouldCreateUser: true,
-      },
+      password: "correct horse",
     });
   });
 
-  it("rejects an invalid email without contacting Supabase", async () => {
-    const state = await sendMagicLink({ status: "idle" }, loginForm({ email: "not-an-email" }));
+  it("never redirects to another site", async () => {
+    signInWithPasswordMock.mockResolvedValueOnce({ error: null });
 
-    expect(state).toEqual({ status: "invalid_email" });
-    expect(signInWithOtpMock).not.toHaveBeenCalled();
+    await expect(
+      signInAction(
+        { status: "idle" },
+        loginForm({ email: "a@b.co", password: "correct horse", next: "//evil.example" }),
+      ),
+    ).rejects.toThrow("REDIRECT /app");
   });
 
-  it("tells the user to wait when Supabase rate-limits emails", async () => {
-    signInWithOtpMock.mockResolvedValueOnce({ error: { status: 429, message: "rate limit" } });
+  it("rejects an invalid email without contacting Supabase", async () => {
+    expect(
+      await signInAction({ status: "idle" }, loginForm({ email: "nope", password: "whatever1" })),
+    ).toEqual({ status: "invalid_email" });
+    expect(signInWithPasswordMock).not.toHaveBeenCalled();
+  });
 
-    const state = await sendMagicLink({ status: "idle" }, loginForm({ email: "a@b.co" }));
+  it("gives one answer for a wrong password, an unknown email or a too-short password", async () => {
+    signInWithPasswordMock.mockResolvedValueOnce({
+      error: { status: 400, code: "invalid_credentials" },
+    });
 
-    expect(state).toEqual({ status: "rate_limited" });
+    expect(
+      await signInAction(
+        { status: "idle" },
+        loginForm({ email: "a@b.co", password: "wrong pass" }),
+      ),
+    ).toEqual({ status: "invalid_credentials" });
+    expect(
+      await signInAction({ status: "idle" }, loginForm({ email: "a@b.co", password: "short" })),
+    ).toEqual({ status: "invalid_credentials" });
+  });
+
+  it("tells the user to wait when Supabase rate-limits sign-ins", async () => {
+    signInWithPasswordMock.mockResolvedValueOnce({
+      error: { status: 429, code: "over_request_rate_limit" },
+    });
+
+    expect(
+      await signInAction(
+        { status: "idle" },
+        loginForm({ email: "a@b.co", password: "long enough" }),
+      ),
+    ).toEqual({ status: "rate_limited" });
   });
 
   it("reports a generic failure for any other error", async () => {
-    signInWithOtpMock.mockResolvedValueOnce({ error: { status: 500, message: "boom" } });
+    signInWithPasswordMock.mockResolvedValueOnce({
+      error: { status: 500, code: "unexpected_failure" },
+    });
 
-    const state = await sendMagicLink({ status: "idle" }, loginForm({ email: "a@b.co" }));
-
-    expect(state).toEqual({ status: "failed" });
+    expect(
+      await signInAction(
+        { status: "idle" },
+        loginForm({ email: "a@b.co", password: "long enough" }),
+      ),
+    ).toEqual({ status: "failed" });
   });
 });

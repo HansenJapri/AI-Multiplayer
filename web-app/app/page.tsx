@@ -13,7 +13,10 @@ export default function HomePage() {
         your model keys and never judge the agent&apos;s output.
       </p>
       <p>
-        <Link className="button" href="/login">
+        <Link className="button" href="/signup">
+          Create account
+        </Link>{" "}
+        <Link className="button button-quiet" href="/login">
           Sign in
         </Link>{" "}
         <Link className="button button-quiet" href="/pricing">

@@ -16,6 +16,16 @@ describe("PricingPage", () => {
     );
   });
 
+  it("starts the free plan by creating an account", () => {
+    render(<PricingPage />);
+
+    expect(
+      within(screen.getByRole("region", { name: "Free" })).getByRole("link", {
+        name: "Start free",
+      }),
+    ).toHaveAttribute("href", "/signup");
+  });
+
   it("offers a refundable deposit for each paid plan", () => {
     render(<PricingPage />);
 
