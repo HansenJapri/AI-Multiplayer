@@ -81,6 +81,26 @@ SessionStart"), and because the token then never appears in a repository file.
 The CLI is packed into `public/aim-<version>.tgz` by `npm run cli:build` (run automatically before
 `npm run build`), so users run it with `npx --yes https://<site>/aim-<version>.tgz <command>`.
 
+## Client guests
+
+A member opens a run, enters the client's email under "Client access" and sends the one-time link
+(`/guest/<token>`, bound to that email, 7 days). The guest sees that run's timeline and the
+comments marked "Visible to the client", and can comment back. Row level security keeps
+everything else away from guests: other runs, internal comments, steering, holds, checkpoints,
+the team list. Steering, holds, CLI login and resume all require workspace membership, so a guest
+can never do them (`supabase/tests/database/13_run_guests.test.sql`).
+
+## Deposits
+
+`/pricing` lists Free, Team (per driver) and Agency (per workspace); prices live only in
+`lib/billing/plans.ts`. A workspace owner reserves a paid plan at `/app/deposit` with a refundable
+deposit worth the first month. The payment provider is behind the `DepositProvider` interface
+(`lib/billing/deposit-provider.ts`); today `defaultDepositProvider` is the manual adapter, which
+shows the owner a reference and asks them to wait for payment instructions. Operators, listed in
+the server-only `OPERATOR_EMAILS` variable, see pending deposits at `/app/ops/deposits` and mark
+each one paid when the money arrives. A hosted-checkout adapter would return a redirect from
+`startCheckout` and call `completeDeposit` from its payment webhook.
+
 ## CI
 
 `.github/workflows/ci.yml` (repository root) runs on every push, every pull request and on demand,

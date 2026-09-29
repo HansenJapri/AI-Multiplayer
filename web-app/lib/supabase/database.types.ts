@@ -58,6 +58,59 @@ export type Database = {
           },
         ];
       };
+      deposits: {
+        Row: {
+          amount_cents: number;
+          created_at: string;
+          currency: string;
+          id: string;
+          paid_at: string | null;
+          plan: string;
+          provider: string;
+          provider_reference: string | null;
+          seats: number;
+          started_by: string;
+          status: string;
+          workspace_id: string;
+        };
+        Insert: {
+          amount_cents: number;
+          created_at?: string;
+          currency?: string;
+          id?: string;
+          paid_at?: string | null;
+          plan: string;
+          provider: string;
+          provider_reference?: string | null;
+          seats: number;
+          started_by: string;
+          status?: string;
+          workspace_id: string;
+        };
+        Update: {
+          amount_cents?: number;
+          created_at?: string;
+          currency?: string;
+          id?: string;
+          paid_at?: string | null;
+          plan?: string;
+          provider?: string;
+          provider_reference?: string | null;
+          seats?: number;
+          started_by?: string;
+          status?: string;
+          workspace_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "deposits_workspace_id_fkey";
+            columns: ["workspace_id"];
+            isOneToOne: false;
+            referencedRelation: "workspaces";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       events: {
         Row: {
           actor_id: string | null;
@@ -583,6 +636,10 @@ export type Database = {
         Returns: string;
       };
       cli_device_login_status: { Args: { p_device_code_hash: string }; Returns: string };
+      complete_deposit: {
+        Args: { p_deposit_id: string; p_provider_reference: string };
+        Returns: boolean;
+      };
       complete_run_checkpoint: {
         Args: { p_checkpoint_id: string; p_token_hash: string };
         Returns: boolean;
@@ -644,6 +701,18 @@ export type Database = {
       start_cli_device_login: {
         Args: { p_device_code_hash: string; p_user_code: string };
         Returns: undefined;
+      };
+      start_deposit: {
+        Args: {
+          p_amount_cents: number;
+          p_currency: string;
+          p_plan: string;
+          p_provider: string;
+          p_seats: number;
+          p_user_id: string;
+          p_workspace_id: string;
+        };
+        Returns: string;
       };
     };
     Enums: {
