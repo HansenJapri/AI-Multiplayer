@@ -200,6 +200,47 @@ export type Database = {
           },
         ];
       };
+      run_holds: {
+        Row: {
+          id: string;
+          raised_at: string;
+          raised_by: string;
+          reason: string;
+          released_at: string | null;
+          released_by: string | null;
+          run_id: string;
+          workspace_id: string;
+        };
+        Insert: {
+          id?: string;
+          raised_at?: string;
+          raised_by: string;
+          reason?: string;
+          released_at?: string | null;
+          released_by?: string | null;
+          run_id: string;
+          workspace_id: string;
+        };
+        Update: {
+          id?: string;
+          raised_at?: string;
+          raised_by?: string;
+          reason?: string;
+          released_at?: string | null;
+          released_by?: string | null;
+          run_id?: string;
+          workspace_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "run_holds_workspace_id_run_id_fkey";
+            columns: ["workspace_id", "run_id"];
+            isOneToOne: false;
+            referencedRelation: "runs";
+            referencedColumns: ["workspace_id", "id"];
+          },
+        ];
+      };
       run_participants: {
         Row: {
           first_seen_at: string;
@@ -258,6 +299,44 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: "workspaces";
             referencedColumns: ["id"];
+          },
+        ];
+      };
+      steer_messages: {
+        Row: {
+          author_id: string;
+          body: string;
+          created_at: string;
+          delivered_at: string | null;
+          id: string;
+          run_id: string;
+          workspace_id: string;
+        };
+        Insert: {
+          author_id: string;
+          body: string;
+          created_at?: string;
+          delivered_at?: string | null;
+          id?: string;
+          run_id: string;
+          workspace_id: string;
+        };
+        Update: {
+          author_id?: string;
+          body?: string;
+          created_at?: string;
+          delivered_at?: string | null;
+          id?: string;
+          run_id?: string;
+          workspace_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "steer_messages_workspace_id_run_id_fkey";
+            columns: ["workspace_id", "run_id"];
+            isOneToOne: false;
+            referencedRelation: "runs";
+            referencedColumns: ["workspace_id", "id"];
           },
         ];
       };
@@ -390,13 +469,22 @@ export type Database = {
           p_payload: Json;
           p_token_hash: string;
         };
-        Returns: string;
+        Returns: Json;
       };
       post_run_comment: {
         Args: { p_author_id: string; p_body: string; p_hook_event_id: string; p_run_id: string };
         Returns: string;
       };
+      queue_steer_message: {
+        Args: { p_author_id: string; p_body: string; p_run_id: string };
+        Returns: string;
+      };
+      raise_run_hold: {
+        Args: { p_reason: string; p_run_id: string; p_user_id: string };
+        Returns: boolean;
+      };
       record_run_view: { Args: { p_run_id: string; p_user_id: string }; Returns: string };
+      release_run_hold: { Args: { p_run_id: string; p_user_id: string }; Returns: boolean };
       start_cli_device_login: {
         Args: { p_device_code_hash: string; p_user_code: string };
         Returns: undefined;

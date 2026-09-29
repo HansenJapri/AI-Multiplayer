@@ -25,8 +25,8 @@ select has_function(
   'ingest_hook_event(token_hash, claude_session_id, hook_event_name, payload) exists'
 );
 select function_returns(
-  'public', 'ingest_hook_event', array['text', 'text', 'text', 'jsonb'], 'uuid',
-  'ingest_hook_event returns the stored hook event id'
+  'public', 'ingest_hook_event', array['text', 'text', 'text', 'jsonb'], 'jsonb',
+  'ingest_hook_event returns the stored hook event id and the directive for the agent'
 );
 
 select is(

@@ -3,7 +3,7 @@
 import { REALTIME_SUBSCRIBE_STATES } from "@supabase/supabase-js";
 import { useActionState, useEffect, useState } from "react";
 import { SubmitButton } from "@/components/submit-button";
-import type { RunComment, RunForViewer } from "@/lib/runs/runs";
+import type { RunComment, RunForViewer, RunHold, SteerMessage } from "@/lib/runs/runs";
 import {
   describeTimelineStep,
   mergeTimelineItems,
@@ -13,6 +13,7 @@ import {
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser-client";
 import { postCommentAction } from "./actions";
 import type { PostCommentState } from "./comment-state";
+import { HoldBanner, SteeringPanel } from "./steering-panel";
 
 const INITIAL_COMMENT_STATE: PostCommentState = { status: "idle" };
 const UNKNOWN_AUTHOR = "teammate";
@@ -22,7 +23,7 @@ interface Viewer {
   email: string;
 }
 
-interface InsertedRow {
+interface ChangedRow {
   new: Record<string, unknown>;
 }
 
@@ -32,7 +33,6 @@ interface PresenceEntry {
 
 function commentFromRow(
   row: Record<string, unknown>,
-  viewer: Viewer,
   knownEmails: Map<string, string>,
 ): RunComment {
   const authorId = String(row.author_id);
@@ -40,11 +40,47 @@ function commentFromRow(
     id: String(row.id),
     stepId: typeof row.hook_event_id === "string" ? row.hook_event_id : null,
     authorId,
-    authorEmail:
-      authorId === viewer.id ? viewer.email : (knownEmails.get(authorId) ?? UNKNOWN_AUTHOR),
+    authorEmail: knownEmails.get(authorId) ?? UNKNOWN_AUTHOR,
     body: String(row.body),
     receivedAt: String(row.created_at),
   };
+}
+
+function steerMessageFromRow(
+  row: Record<string, unknown>,
+  knownEmails: Map<string, string>,
+): SteerMessage {
+  const authorId = String(row.author_id);
+  return {
+    id: String(row.id),
+    authorId,
+    authorEmail: knownEmails.get(authorId) ?? UNKNOWN_AUTHOR,
+    body: String(row.body),
+    receivedAt: String(row.created_at),
+    deliveredAt: typeof row.delivered_at === "string" ? row.delivered_at : null,
+  };
+}
+
+// A released hold arrives as an update with released_at set.
+function holdFromRow(
+  row: Record<string, unknown>,
+  knownEmails: Map<string, string>,
+): RunHold | null {
+  if (row.released_at !== null && row.released_at !== undefined) {
+    return null;
+  }
+  return {
+    raisedByEmail: knownEmails.get(String(row.raised_by)) ?? UNKNOWN_AUTHOR,
+    reason: typeof row.reason === "string" ? row.reason : "",
+  };
+}
+
+function knownEmailsFor(run: RunForViewer, viewer: Viewer): Map<string, string> {
+  return new Map([
+    ...run.comments.map((comment) => [comment.authorId, comment.authorEmail] as const),
+    ...run.steerMessages.map((message) => [message.authorId, message.authorEmail] as const),
+    [viewer.id, viewer.email] as const,
+  ]);
 }
 
 function StepView({
@@ -105,14 +141,14 @@ function CommentView({ comment }: { comment: RunComment }) {
 export function LiveRun({ run, viewer }: { run: RunForViewer; viewer: Viewer }) {
   const [steps, setSteps] = useState(run.steps);
   const [comments, setComments] = useState(run.comments);
+  const [steerMessages, setSteerMessages] = useState(run.steerMessages);
+  const [hold, setHold] = useState(run.hold);
   const [watchers, setWatchers] = useState<string[]>([]);
   const [anchorStep, setAnchorStep] = useState<TimelineStep | null>(null);
   const [commentState, commentAction] = useActionState(postCommentAction, INITIAL_COMMENT_STATE);
 
   useEffect(() => {
-    const knownEmails = new Map(
-      run.comments.map((comment) => [comment.authorId, comment.authorEmail]),
-    );
+    const knownEmails = knownEmailsFor(run, viewer);
     const supabase = createSupabaseBrowserClient();
     const channel = supabase.channel(`run:${run.id}`, { config: { presence: { key: viewer.id } } });
     let leftBeforeSubscribing = false;
@@ -135,7 +171,7 @@ export function LiveRun({ run, viewer }: { run: RunForViewer; viewer: Viewer }) 
             table: "hook_events",
             filter: `run_id=eq.${run.id}`,
           },
-          (payload: InsertedRow) => {
+          (payload: ChangedRow) => {
             setSteps((current) =>
               mergeTimelineItems(current, [
                 describeTimelineStep(payload.new as unknown as HookEventRow),
@@ -151,10 +187,26 @@ export function LiveRun({ run, viewer }: { run: RunForViewer; viewer: Viewer }) 
             table: "run_comments",
             filter: `run_id=eq.${run.id}`,
           },
-          (payload: InsertedRow) => {
+          (payload: ChangedRow) => {
             setComments((current) =>
-              mergeTimelineItems(current, [commentFromRow(payload.new, viewer, knownEmails)]),
+              mergeTimelineItems(current, [commentFromRow(payload.new, knownEmails)]),
             );
+          },
+        )
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "steer_messages", filter: `run_id=eq.${run.id}` },
+          (payload: ChangedRow) => {
+            setSteerMessages((current) =>
+              mergeTimelineItems(current, [steerMessageFromRow(payload.new, knownEmails)]),
+            );
+          },
+        )
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "run_holds", filter: `run_id=eq.${run.id}` },
+          (payload: ChangedRow) => {
+            setHold(holdFromRow(payload.new, knownEmails));
           },
         )
         .on("presence", { event: "sync" }, () => {
@@ -173,12 +225,13 @@ export function LiveRun({ run, viewer }: { run: RunForViewer; viewer: Viewer }) 
       leftBeforeSubscribing = true;
       void supabase.removeChannel(channel);
     };
-  }, [run.id, run.comments, viewer]);
+  }, [run, viewer]);
 
   const runComments = comments.filter((comment) => comment.stepId === null);
 
   return (
     <>
+      <HoldBanner hold={hold} />
       <section aria-label="Presence" className="presence">
         <span className="muted">Watching now:</span>
         <ul aria-label="Watching now" className="watchers">
@@ -189,6 +242,10 @@ export function LiveRun({ run, viewer }: { run: RunForViewer; viewer: Viewer }) 
           ))}
         </ul>
       </section>
+
+      {run.viewerRole === "guest" ? null : (
+        <SteeringPanel runId={run.id} hold={hold} steerMessages={steerMessages} />
+      )}
 
       <h2>Timeline</h2>
       {steps.length === 0 ? (

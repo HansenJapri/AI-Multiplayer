@@ -1,4 +1,5 @@
 import { storeHookEvent } from "@/lib/hooks/hook-event-store";
+import { buildHookOutput } from "@/lib/hooks/hook-output";
 import { parseHookPayload } from "@/lib/hooks/hook-payload";
 import { extractBearerToken } from "@/lib/hooks/install-token";
 import { hashOpaqueToken } from "@/lib/security/opaque-token";
@@ -27,11 +28,6 @@ function hookPayloadTooLargeResponse(): Response {
 
 function internalErrorResponse(): Response {
   return Response.json({ error: "internal_error" }, { status: 500 });
-}
-
-// Claude Code reads a 2xx body as hook output; an empty object means "no decision, continue".
-function emptyHookOutputResponse(): Response {
-  return Response.json({});
 }
 
 function parseJsonOrNull(text: string): unknown {
@@ -69,7 +65,10 @@ export async function POST(request: Request): Promise<Response> {
 
   try {
     const result = await storeHookEvent(hashOpaqueToken(installToken), payload);
-    return result.status === "stored" ? emptyHookOutputResponse() : unauthorizedResponse();
+    // Claude Code reads a 2xx body as hook output: it may hold the run or carry teammates' messages.
+    return result.status === "stored"
+      ? Response.json(buildHookOutput(payload.hookEventName, result.directive))
+      : unauthorizedResponse();
   } catch (error) {
     // Log only the error message: it never contains the token, and store errors omit the payload.
     console.error("Hook ingest failed:", error instanceof Error ? error.message : "unknown error");
