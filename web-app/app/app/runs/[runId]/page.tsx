@@ -26,7 +26,11 @@ export default async function RunPage({ params }: RunPageProps) {
   return (
     <main>
       <p className="muted">
-        <Link href={`/app/workspaces/${run.workspaceId}`}>{run.workspaceName}</Link>
+        {run.viewerRole === "guest" ? (
+          `Shared with you by ${run.workspaceName}`
+        ) : (
+          <Link href={`/app/workspaces/${run.workspaceId}`}>{run.workspaceName}</Link>
+        )}
       </p>
       <h1>Run</h1>
       <p className="muted">

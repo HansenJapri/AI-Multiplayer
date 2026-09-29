@@ -108,7 +108,7 @@ select results_eq(
 select has_table('public', 'run_comments', 'run_comments table exists');
 select columns_are(
   'public', 'run_comments',
-  array['id', 'workspace_id', 'run_id', 'hook_event_id', 'author_id', 'body', 'created_at'],
+  array['id', 'workspace_id', 'run_id', 'hook_event_id', 'author_id', 'body', 'created_at', 'audience'],
   'run_comments has exactly the expected columns'
 );
 select fk_ok(

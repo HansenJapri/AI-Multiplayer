@@ -44,7 +44,22 @@ describe("postCommentAction", () => {
       authorId: "user-1",
       body: "Why?",
       stepId: "event-1",
+      audience: "team",
     });
+  });
+
+  it("marks the comment for the client when the author chose to share it", async () => {
+    getCurrentUserMock.mockResolvedValueOnce({ id: "user-1", email: "dev@agency.example" });
+    postRunCommentMock.mockResolvedValueOnce(true);
+
+    await postCommentAction(
+      { status: "idle" },
+      commentForm({ runId: "run-1", body: "Done soon", audience: "client" }),
+    );
+
+    expect(postRunCommentMock).toHaveBeenCalledWith(
+      expect.objectContaining({ audience: "client" }),
+    );
   });
 
   it("posts a comment on the whole run when no step is chosen", async () => {
