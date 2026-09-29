@@ -1,5 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import cliPackage from "@/cli/package.json";
 import RunPage from "./page";
 
 const { getCurrentUserMock, loadRunForViewerMock } = vi.hoisted(() => ({
@@ -10,7 +11,20 @@ const { getCurrentUserMock, loadRunForViewerMock } = vi.hoisted(() => ({
 vi.mock("@/lib/auth/current-user", () => ({ getCurrentUser: getCurrentUserMock }));
 vi.mock("@/lib/runs/runs", () => ({ loadRunForViewer: loadRunForViewerMock }));
 vi.mock("./live-run", () => ({
-  LiveRun: ({ run }: { run: { steps: unknown[] } }) => <p>{run.steps.length} steps</p>,
+  LiveRun: ({ run, cliPackageUrl }: { run: { steps: unknown[] }; cliPackageUrl: string }) => (
+    <p>
+      {run.steps.length} steps via {cliPackageUrl}
+    </p>
+  ),
+}));
+vi.mock("next/headers", () => ({
+  headers: () =>
+    Promise.resolve(
+      new Headers({
+        "x-forwarded-proto": "https",
+        "x-forwarded-host": "ai-multiplayer.vercel.app",
+      }),
+    ),
 }));
 vi.mock("next/navigation", () => ({
   notFound: () => {
@@ -48,7 +62,11 @@ describe("RunPage", () => {
       "href",
       "/app/workspaces/workspace-1",
     );
-    expect(screen.getByText("2 steps")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        `2 steps via https://ai-multiplayer.vercel.app/aim-${cliPackage.version}.tgz`,
+      ),
+    ).toBeInTheDocument();
   });
 
   it("answers not found for a run the user may not see", async () => {

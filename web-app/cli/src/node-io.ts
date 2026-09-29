@@ -4,6 +4,7 @@ import { dirname, join } from "node:path";
 import type { ClaudeSettings } from "./claude-settings.js";
 import { AIM_HOOK_SCRIPT_NAME } from "./claude-settings.js";
 import type { AimCredentials } from "./hook-forwarder.js";
+import { claudeProjectDirectoryName } from "./resume-command.js";
 
 const OWNER_READ_WRITE_ONLY = 0o600;
 const OWNER_ONLY_DIRECTORY = 0o700;
@@ -102,4 +103,30 @@ export async function installHookRuntime(
   // Forward slashes work in every shell Claude Code may use to run the hook, including on Windows.
   const hookScriptPath = join(runtimeDirectory, AIM_HOOK_SCRIPT_NAME).replaceAll("\\", "/");
   return `node "${hookScriptPath}"`;
+}
+
+export function claudeTranscriptPath(
+  claudeConfigDirectory: string,
+  projectDirectory: string,
+  claudeSessionId: string,
+): string {
+  return join(
+    claudeConfigDirectory,
+    "projects",
+    claudeProjectDirectoryName(projectDirectory),
+    `${claudeSessionId}.jsonl`,
+  );
+}
+
+export async function downloadToFile(
+  url: string,
+  path: string,
+  fetchFile: typeof fetch = fetch,
+): Promise<void> {
+  const response = await fetchFile(url);
+  if (!response.ok) {
+    throw new Error(`Download failed (HTTP ${String(response.status)})`);
+  }
+  await mkdir(dirname(path), { recursive: true });
+  await writeFile(path, new Uint8Array(await response.arrayBuffer()));
 }

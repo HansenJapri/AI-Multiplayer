@@ -1,8 +1,10 @@
 #!/usr/bin/env node
 import { spawn } from "node:child_process";
-import { dirname } from "node:path";
+import { homedir, tmpdir } from "node:os";
+import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { hasAimHooks } from "./claude-settings.js";
+import { resumeCommand } from "./resume-command.js";
 import { parseCommandLine } from "./command-line.js";
 import {
   installCommand,
@@ -10,8 +12,11 @@ import {
   uninstallCommand,
   type InstallDependencies,
 } from "./install-command.js";
+import { checkoutFromBundle, isCleanWorkingTree, isGitRepository } from "./git-snapshot.js";
 import { loginCommand } from "./login-command.js";
 import {
+  claudeTranscriptPath,
+  downloadToFile,
   excludeFromGit,
   installHookRuntime,
   readCredentials,
@@ -27,6 +32,9 @@ Usage:
   aim install     Share Claude Code sessions of the current project
   aim uninstall   Stop sharing sessions of the current project
   aim status      Show the connection and this project's sharing state
+  aim resume <run-id> [--step N] [--no-launch]
+                  Continue a teammate's run here: new branch at the checkpoint and
+                  a forked Claude Code session (needs a clean git working tree)
 
 Options:
   --api <url>     Use another server (default https://ai-multiplayer.vercel.app)`;
@@ -46,6 +54,32 @@ function openBrowser(url: string): void {
   spawn(command, commandArguments, { detached: true, stdio: "ignore" })
     .on("error", () => undefined)
     .unref();
+}
+
+function claudeConfigDirectory(): string {
+  return process.env.CLAUDE_CONFIG_DIR ?? join(homedir(), ".claude");
+}
+
+// Runs the teammate's own Claude Code with the terminal attached. The session id comes from the
+// server as a UUID, so passing it through a shell (needed for claude.cmd on Windows) is safe.
+function launchClaude(claudeSessionId: string): Promise<number> {
+  return new Promise((resolve) => {
+    spawn("claude", ["--resume", claudeSessionId, "--fork-session"], {
+      stdio: "inherit",
+      shell: process.platform === "win32",
+    })
+      .on("exit", (code) => {
+        resolve(code ?? 1);
+      })
+      .on("error", () => {
+        print(
+          "Could not start Claude Code. Run: claude --resume " +
+            claudeSessionId +
+            " --fork-session",
+        );
+        resolve(1);
+      });
+  });
 }
 
 function installDependencies(): InstallDependencies {
@@ -77,7 +111,10 @@ async function statusCommand(): Promise<number> {
 }
 
 async function run(): Promise<number> {
-  const { command, apiUrl } = parseCommandLine(process.argv.slice(2), process.env);
+  const { command, apiUrl, runId, step, launch } = parseCommandLine(
+    process.argv.slice(2),
+    process.env,
+  );
   switch (command) {
     case "login":
       return loginCommand(apiUrl, {
@@ -93,6 +130,31 @@ async function run(): Promise<number> {
       return uninstallCommand(installDependencies());
     case "status":
       return statusCommand();
+    case "resume":
+      return resumeCommand(
+        { runId: runId ?? "", step, launch },
+        {
+          projectDirectory: process.cwd(),
+          readCredentials: () => readCredentials(),
+          isGitRepository,
+          isCleanWorkingTree,
+          fetch,
+          downloadToFile: (url, path) => downloadToFile(url, path),
+          temporaryPath: (fileName) => join(tmpdir(), fileName),
+          checkoutFromBundle,
+          installTranscript: async (transcriptUrl, projectDirectory, claudeSessionId) => {
+            const transcriptPath = claudeTranscriptPath(
+              claudeConfigDirectory(),
+              projectDirectory,
+              claudeSessionId,
+            );
+            await downloadToFile(transcriptUrl, transcriptPath);
+            return transcriptPath;
+          },
+          launchClaude,
+          print,
+        },
+      );
     case "help":
       print(HELP_TEXT);
       return 0;

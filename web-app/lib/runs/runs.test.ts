@@ -114,6 +114,13 @@ describe("loadRunForViewer", () => {
       error: null,
     });
     queryResolving({ data: { raised_by: "user-1", reason: "Reviewing" }, error: null });
+    queryResolving({
+      data: [
+        { sequence: 1, created_at: "2026-09-28T10:00:05Z", uploaded_at: "2026-09-28T10:00:07Z" },
+        { sequence: 2, created_at: "2026-09-28T10:01:05Z", uploaded_at: null },
+      ],
+      error: null,
+    });
     getUserByIdMock.mockResolvedValue({ data: { user: { email: "owner@agency.example" } } });
 
     const run = await loadRunForViewer("run-1", "user-2");
@@ -158,6 +165,10 @@ describe("loadRunForViewer", () => {
         },
       ],
       hold: { raisedByEmail: "owner@agency.example", reason: "Reviewing" },
+      checkpoints: [
+        { step: 1, receivedAt: "2026-09-28T10:00:05Z", ready: true },
+        { step: 2, receivedAt: "2026-09-28T10:01:05Z", ready: false },
+      ],
     });
   });
 });

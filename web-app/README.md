@@ -28,7 +28,7 @@ before every commit.
 | `npm run db:start`   | Start the local Postgres container (needs Docker)                   |
 | `npm run db:reset`   | Recreate the local database from `supabase/migrations/`             |
 | `npm run test:db`    | Run the pgTAP suite in `supabase/tests/database/`                   |
-| `npm run cli:build`  | Compile the aim CLI and pack it into `public/aim.tgz`               |
+| `npm run cli:build`  | Compile the aim CLI and pack it into `public/aim-<version>.tgz`     |
 | `npm run db:types`   | Regenerate `lib/supabase/database.types.ts` from the local database |
 
 ## Layout
@@ -78,8 +78,8 @@ usage from the transcript, and prints the reply as hook output. Command hooks ar
 Claude Code 2.1.216 skips `http` hooks on `SessionStart` ("HTTP hooks are not supported for
 SessionStart"), and because the token then never appears in a repository file.
 
-The CLI is packed into `public/aim.tgz` by `npm run cli:build` (run automatically before
-`npm run build`), so users run it with `npx --yes https://<site>/aim.tgz <command>`.
+The CLI is packed into `public/aim-<version>.tgz` by `npm run cli:build` (run automatically before
+`npm run build`), so users run it with `npx --yes https://<site>/aim-<version>.tgz <command>`.
 
 ## CI
 

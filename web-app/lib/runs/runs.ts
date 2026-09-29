@@ -34,6 +34,13 @@ export interface RunHold {
   reason: string;
 }
 
+export interface RunCheckpoint {
+  step: number;
+  receivedAt: string;
+  // False while the bundle and transcript are still uploading; only ready steps can be resumed.
+  ready: boolean;
+}
+
 export interface RunForViewer {
   id: string;
   workspaceId: string;
@@ -44,6 +51,7 @@ export interface RunForViewer {
   comments: RunComment[];
   steerMessages: SteerMessage[];
   hold: RunHold | null;
+  checkpoints: RunCheckpoint[];
 }
 
 // Carries only the Postgres error code: PostgREST details can quote row values.
@@ -141,6 +149,15 @@ export async function loadRunForViewer(
     throw new RunStoreError(holdError.code);
   }
 
+  const { data: checkpoints, error: checkpointsError } = await supabase
+    .from("run_checkpoints")
+    .select("sequence, created_at, uploaded_at")
+    .eq("run_id", runId)
+    .order("sequence");
+  if (checkpointsError) {
+    throw new RunStoreError(checkpointsError.code);
+  }
+
   const authorEmails = await readAccountEmails([
     ...comments.map((comment) => comment.author_id),
     ...steerMessages.map((message) => message.author_id),
@@ -176,6 +193,11 @@ export async function loadRunForViewer(
             raisedByEmail: authorEmails.get(activeHold.raised_by) ?? "",
             reason: activeHold.reason,
           },
+    checkpoints: checkpoints.map((checkpoint) => ({
+      step: checkpoint.sequence,
+      receivedAt: checkpoint.created_at,
+      ready: checkpoint.uploaded_at !== null,
+    })),
   };
 }
 

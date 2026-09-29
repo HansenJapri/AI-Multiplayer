@@ -314,3 +314,18 @@ select {
 .steering h2 {
   margin: 0;
 }
+
+.handover {
+  display: grid;
+  gap: var(--space-3);
+  margin: var(--space-4) 0;
+}
+
+.handover h2 {
+  margin: 0;
+}
+
+.checkpoint {
+  display: grid;
+  gap: var(--space-1);
+}

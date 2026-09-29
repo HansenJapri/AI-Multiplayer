@@ -155,6 +155,54 @@ export type Database = {
           },
         ];
       };
+      run_checkpoints: {
+        Row: {
+          cli_install_id: string;
+          commit_sha: string;
+          created_at: string;
+          id: string;
+          run_id: string;
+          sequence: number;
+          uploaded_at: string | null;
+          workspace_id: string;
+        };
+        Insert: {
+          cli_install_id: string;
+          commit_sha: string;
+          created_at?: string;
+          id?: string;
+          run_id: string;
+          sequence: number;
+          uploaded_at?: string | null;
+          workspace_id: string;
+        };
+        Update: {
+          cli_install_id?: string;
+          commit_sha?: string;
+          created_at?: string;
+          id?: string;
+          run_id?: string;
+          sequence?: number;
+          uploaded_at?: string | null;
+          workspace_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "run_checkpoints_workspace_id_cli_install_id_fkey";
+            columns: ["workspace_id", "cli_install_id"];
+            isOneToOne: false;
+            referencedRelation: "cli_installs";
+            referencedColumns: ["workspace_id", "id"];
+          },
+          {
+            foreignKeyName: "run_checkpoints_workspace_id_run_id_fkey";
+            columns: ["workspace_id", "run_id"];
+            isOneToOne: false;
+            referencedRelation: "runs";
+            referencedColumns: ["workspace_id", "id"];
+          },
+        ];
+      };
       run_comments: {
         Row: {
           author_id: string;
@@ -449,6 +497,14 @@ export type Database = {
         Returns: string;
       };
       cli_device_login_status: { Args: { p_device_code_hash: string }; Returns: string };
+      complete_run_checkpoint: {
+        Args: { p_checkpoint_id: string; p_token_hash: string };
+        Returns: boolean;
+      };
+      create_run_checkpoint: {
+        Args: { p_claude_session_id: string; p_commit_sha: string; p_token_hash: string };
+        Returns: Json;
+      };
       create_workspace_invite: {
         Args: {
           p_email: string;
@@ -485,6 +541,10 @@ export type Database = {
       };
       record_run_view: { Args: { p_run_id: string; p_user_id: string }; Returns: string };
       release_run_hold: { Args: { p_run_id: string; p_user_id: string }; Returns: boolean };
+      resolve_checkpoint_for_resume: {
+        Args: { p_run_id: string; p_sequence: number; p_token_hash: string };
+        Returns: Json;
+      };
       start_cli_device_login: {
         Args: { p_device_code_hash: string; p_user_code: string };
         Returns: undefined;

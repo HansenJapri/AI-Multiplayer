@@ -4,6 +4,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
+  claudeTranscriptPath,
+  downloadToFile,
   excludeFromGit,
   installHookRuntime,
   readCredentials,
@@ -101,5 +103,33 @@ describe("installHookRuntime", () => {
       type: "module",
     });
     expect(command).toBe(`node "${join(runtime, "aim-hook.mjs").replaceAll("\\", "/")}"`);
+  });
+});
+
+describe("claudeTranscriptPath", () => {
+  it("places a session transcript where Claude Code looks for this project's sessions", () => {
+    expect(claudeTranscriptPath("/home/dev/.claude", "/work/client-app", "session-1")).toBe(
+      join("/home/dev/.claude", "projects", "-work-client-app", "session-1.jsonl"),
+    );
+  });
+});
+
+describe("downloadToFile", () => {
+  it("writes the downloaded bytes, creating missing folders", async () => {
+    const target = join(sandbox, "nested", "file.bin");
+    const fakeFetch = (() => Promise.resolve(new Response("bundle bytes"))) as typeof fetch;
+
+    await downloadToFile("https://storage/file", target, fakeFetch);
+
+    expect(await readFile(target, "utf8")).toBe("bundle bytes");
+  });
+
+  it("fails on an HTTP error instead of writing an error page", async () => {
+    const fakeFetch = (() =>
+      Promise.resolve(new Response("denied", { status: 403 }))) as typeof fetch;
+
+    await expect(
+      downloadToFile("https://storage/file", join(sandbox, "x"), fakeFetch),
+    ).rejects.toThrow("Download failed (HTTP 403)");
   });
 });
