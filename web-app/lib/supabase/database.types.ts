@@ -205,6 +205,7 @@ export type Database = {
       };
       run_comments: {
         Row: {
+          audience: string;
           author_id: string;
           body: string;
           created_at: string;
@@ -214,6 +215,7 @@ export type Database = {
           workspace_id: string;
         };
         Insert: {
+          audience?: string;
           author_id: string;
           body: string;
           created_at?: string;
@@ -223,6 +225,7 @@ export type Database = {
           workspace_id: string;
         };
         Update: {
+          audience?: string;
           author_id?: string;
           body?: string;
           created_at?: string;
@@ -241,6 +244,85 @@ export type Database = {
           },
           {
             foreignKeyName: "run_comments_workspace_id_run_id_fkey";
+            columns: ["workspace_id", "run_id"];
+            isOneToOne: false;
+            referencedRelation: "runs";
+            referencedColumns: ["workspace_id", "id"];
+          },
+        ];
+      };
+      run_guest_invites: {
+        Row: {
+          accepted_at: string | null;
+          accepted_by: string | null;
+          created_at: string;
+          email: string;
+          expires_at: string;
+          id: string;
+          invited_by: string;
+          run_id: string;
+          token_hash: string;
+          workspace_id: string;
+        };
+        Insert: {
+          accepted_at?: string | null;
+          accepted_by?: string | null;
+          created_at?: string;
+          email: string;
+          expires_at?: string;
+          id?: string;
+          invited_by: string;
+          run_id: string;
+          token_hash: string;
+          workspace_id: string;
+        };
+        Update: {
+          accepted_at?: string | null;
+          accepted_by?: string | null;
+          created_at?: string;
+          email?: string;
+          expires_at?: string;
+          id?: string;
+          invited_by?: string;
+          run_id?: string;
+          token_hash?: string;
+          workspace_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "run_guest_invites_workspace_id_run_id_fkey";
+            columns: ["workspace_id", "run_id"];
+            isOneToOne: false;
+            referencedRelation: "runs";
+            referencedColumns: ["workspace_id", "id"];
+          },
+        ];
+      };
+      run_guests: {
+        Row: {
+          created_at: string;
+          invited_by: string;
+          run_id: string;
+          user_id: string;
+          workspace_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          invited_by: string;
+          run_id: string;
+          user_id: string;
+          workspace_id: string;
+        };
+        Update: {
+          created_at?: string;
+          invited_by?: string;
+          run_id?: string;
+          user_id?: string;
+          workspace_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "run_guests_workspace_id_run_id_fkey";
             columns: ["workspace_id", "run_id"];
             isOneToOne: false;
             referencedRelation: "runs";
@@ -484,6 +566,10 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
+      accept_run_guest_invite: {
+        Args: { p_token_hash: string; p_user_email: string; p_user_id: string };
+        Returns: string;
+      };
       accept_workspace_invite: {
         Args: { p_token_hash: string; p_user_email: string; p_user_id: string };
         Returns: string;
@@ -504,6 +590,10 @@ export type Database = {
       create_run_checkpoint: {
         Args: { p_claude_session_id: string; p_commit_sha: string; p_token_hash: string };
         Returns: Json;
+      };
+      create_run_guest_invite: {
+        Args: { p_email: string; p_inviter_id: string; p_run_id: string; p_token_hash: string };
+        Returns: string;
       };
       create_workspace_invite: {
         Args: {
@@ -528,7 +618,13 @@ export type Database = {
         Returns: Json;
       };
       post_run_comment: {
-        Args: { p_author_id: string; p_body: string; p_hook_event_id: string; p_run_id: string };
+        Args: {
+          p_audience?: string;
+          p_author_id: string;
+          p_body: string;
+          p_hook_event_id: string;
+          p_run_id: string;
+        };
         Returns: string;
       };
       queue_steer_message: {
