@@ -22,7 +22,7 @@ select is_empty(
     join pg_namespace n on n.oid = c.relnamespace
     where n.nspname = 'public'
       and c.relkind = 'r'
-      and c.relname <> 'workspaces'
+      and c.relname not in ('workspaces', 'profiles')
       and not exists (
         select 1
         from pg_attribute a
@@ -32,7 +32,7 @@ select is_empty(
           and not a.attisdropped
       )
   $$,
-  'every public table except workspaces carries a non-null workspace_id'
+  'every public table except workspaces and per-account profiles carries a non-null workspace_id'
 );
 
 -- RLS never applies to TRUNCATE, and client roles have no use for REFERENCES or TRIGGER, so

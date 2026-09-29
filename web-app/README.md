@@ -56,6 +56,14 @@ npm run test:db
 The Supabase CLI waits on stdin when it is not attached to a terminal. In scripts or agents, run
 it with `< /dev/null`.
 
+## Accounts
+
+People create an account at `/signup` and sign in at `/login` with email and password (at least
+8 characters, `minimum_password_length` in `supabase/config.toml`). Email confirmation is off, so
+sign-up signs the user in straight away; if the project turns it on, the form asks them to confirm
+and the link lands on `/auth/callback`. Each account gets a row in `public.profiles` (kept in step
+with `auth.users` by a trigger), and every table that refers to a person references `profiles`.
+
 ## Hook ingest
 
 Claude Code posts each hook call as JSON to `POST /api/hooks/ingest` with

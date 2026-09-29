@@ -27,7 +27,7 @@ export default function PricingPage() {
             <li>One driver</li>
             <li>Teammates watch and comment for free</li>
           </ul>
-          <Link className="button button-quiet" href="/login">
+          <Link className="button button-quiet" href="/signup">
             Start free
           </Link>
         </section>
