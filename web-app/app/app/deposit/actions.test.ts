@@ -2,13 +2,15 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { startDepositAction } from "./actions";
 
-const { getCurrentUserMock, startDepositMock } = vi.hoisted(() => ({
+const { getCurrentUserMock, startDepositMock, revalidatePathMock } = vi.hoisted(() => ({
   getCurrentUserMock: vi.fn(),
   startDepositMock: vi.fn(),
+  revalidatePathMock: vi.fn(),
 }));
 
 vi.mock("@/lib/auth/current-user", () => ({ getCurrentUser: getCurrentUserMock }));
 vi.mock("@/lib/billing/deposits", () => ({ startDeposit: startDepositMock }));
+vi.mock("next/cache", () => ({ revalidatePath: revalidatePathMock }));
 vi.mock("next/headers", () => ({
   headers: () =>
     Promise.resolve(
@@ -38,6 +40,7 @@ describe("startDepositAction", () => {
   afterEach(() => {
     getCurrentUserMock.mockReset();
     startDepositMock.mockReset();
+    revalidatePathMock.mockReset();
   });
 
   it("starts a deposit for the chosen workspace, plan and drivers, then shows the instructions", async () => {
@@ -65,6 +68,7 @@ describe("startDepositAction", () => {
       seats: 3,
       origin: "https://ai-multiplayer.vercel.app",
     });
+    expect(revalidatePathMock).toHaveBeenCalledWith("/app/deposit");
   });
 
   it("sends the owner to a hosted checkout when the provider has one", async () => {

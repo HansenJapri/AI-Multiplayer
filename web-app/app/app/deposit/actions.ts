@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth/current-user";
@@ -35,6 +36,8 @@ export async function startDepositAction(
   if (result.status !== "started") {
     return { status: result.status };
   }
+  // Lists the new deposit under "Your deposits" while the form shows the next step.
+  revalidatePath("/app/deposit");
   if (result.checkout.kind === "redirect") {
     redirect(result.checkout.url);
   }
