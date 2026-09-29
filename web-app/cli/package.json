@@ -1,6 +1,6 @@
 {
   "name": "aim-cli",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Share Claude Code sessions with your AI Multiplayer workspace.",
   "private": true,
   "type": "module",

@@ -5,4 +5,4 @@ package-lock.json
 next-env.d.ts
 supabase/.temp
 cli/dist
-public/aim.tgz
+public/aim*.tgz

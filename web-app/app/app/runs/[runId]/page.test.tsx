@@ -1,5 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import cliPackage from "@/cli/package.json";
 import RunPage from "./page";
 
 const { getCurrentUserMock, loadRunForViewerMock } = vi.hoisted(() => ({
@@ -62,7 +63,9 @@ describe("RunPage", () => {
       "/app/workspaces/workspace-1",
     );
     expect(
-      screen.getByText("2 steps via https://ai-multiplayer.vercel.app/aim.tgz"),
+      screen.getByText(
+        `2 steps via https://ai-multiplayer.vercel.app/aim-${cliPackage.version}.tgz`,
+      ),
     ).toBeInTheDocument();
   });
 

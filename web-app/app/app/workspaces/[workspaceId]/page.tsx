@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { signInPath } from "@/lib/auth/sign-in-path";
+import { aimPackageUrl } from "@/lib/cli/package-url";
 import { originFromHeaders } from "@/lib/http/request-origin";
 import { listRunsForWorkspace } from "@/lib/runs/runs";
 import { listWorkspaceMembers } from "@/lib/workspaces/members";
@@ -28,7 +29,7 @@ export default async function WorkspacePage({ params }: WorkspacePageProps) {
     listWorkspaceMembers(workspaceId),
     listRunsForWorkspace(workspaceId),
   ]);
-  const cliPackageUrl = `${originFromHeaders(await headers())}/aim.tgz`;
+  const cliPackageUrl = aimPackageUrl(originFromHeaders(await headers()));
 
   return (
     <main>

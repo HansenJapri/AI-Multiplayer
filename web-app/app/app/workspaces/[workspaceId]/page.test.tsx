@@ -1,5 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import cliPackage from "@/cli/package.json";
 import WorkspacePage from "./page";
 
 const {
@@ -80,10 +81,14 @@ describe("WorkspacePage", () => {
     render(await WorkspacePage(pageProps));
 
     expect(
-      screen.getByText("npx --yes https://ai-multiplayer.vercel.app/aim.tgz login"),
+      screen.getByText(
+        `npx --yes https://ai-multiplayer.vercel.app/aim-${cliPackage.version}.tgz login`,
+      ),
     ).toBeInTheDocument();
     expect(
-      screen.getByText("npx --yes https://ai-multiplayer.vercel.app/aim.tgz install"),
+      screen.getByText(
+        `npx --yes https://ai-multiplayer.vercel.app/aim-${cliPackage.version}.tgz install`,
+      ),
     ).toBeInTheDocument();
   });
 

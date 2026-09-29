@@ -1,4 +1,4 @@
-// Packs the compiled CLI into public/aim.tgz so `npx <site>/aim.tgz` works without an npm publish.
+// Packs the compiled CLI into public/aim-<version>.tgz so `npx <site>/aim.tgz` works without an npm publish.
 import { execFileSync } from "node:child_process";
 import { mkdirSync, readFileSync, renameSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -25,4 +25,8 @@ execFileSync(
     stdio: "inherit",
   },
 );
-renameSync(join(publicDirectory, `${name}-${version}.tgz`), join(publicDirectory, "aim.tgz"));
+// Versioned file name: npx caches by URL, so a new release must never reuse an old URL.
+renameSync(
+  join(publicDirectory, `${name}-${version}.tgz`),
+  join(publicDirectory, `aim-${version}.tgz`),
+);

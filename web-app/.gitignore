@@ -43,4 +43,4 @@ next-env.d.ts
 
 # aim CLI build output (packed into public/aim.tgz at build time)
 /cli/dist
-/public/aim.tgz
+/public/aim*.tgz
