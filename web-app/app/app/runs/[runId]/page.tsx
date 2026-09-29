@@ -1,7 +1,9 @@
+import { headers } from "next/headers";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { signInPath } from "@/lib/auth/sign-in-path";
+import { originFromHeaders } from "@/lib/http/request-origin";
 import { loadRunForViewer } from "@/lib/runs/runs";
 import { LiveRun } from "./live-run";
 
@@ -29,7 +31,11 @@ export default async function RunPage({ params }: RunPageProps) {
       <p className="muted">
         Claude Code session <code>{run.claudeSessionId}</code> · you are {run.viewerRole}
       </p>
-      <LiveRun run={run} viewer={{ id: user.id, email: user.email }} />
+      <LiveRun
+        run={run}
+        viewer={{ id: user.id, email: user.email }}
+        cliPackageUrl={`${originFromHeaders(await headers())}/aim.tgz`}
+      />
     </main>
   );
 }

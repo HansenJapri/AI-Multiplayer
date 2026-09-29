@@ -3,7 +3,13 @@
 import { REALTIME_SUBSCRIBE_STATES } from "@supabase/supabase-js";
 import { useActionState, useEffect, useState } from "react";
 import { SubmitButton } from "@/components/submit-button";
-import type { RunComment, RunForViewer, RunHold, SteerMessage } from "@/lib/runs/runs";
+import type {
+  RunCheckpoint,
+  RunComment,
+  RunForViewer,
+  RunHold,
+  SteerMessage,
+} from "@/lib/runs/runs";
 import {
   describeTimelineStep,
   mergeTimelineItems,
@@ -13,6 +19,7 @@ import {
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser-client";
 import { postCommentAction } from "./actions";
 import type { PostCommentState } from "./comment-state";
+import { HandoverPanel } from "./handover-panel";
 import { HoldBanner, SteeringPanel } from "./steering-panel";
 
 const INITIAL_COMMENT_STATE: PostCommentState = { status: "idle" };
@@ -73,6 +80,20 @@ function holdFromRow(
     raisedByEmail: knownEmails.get(String(row.raised_by)) ?? UNKNOWN_AUTHOR,
     reason: typeof row.reason === "string" ? row.reason : "",
   };
+}
+
+function checkpointFromRow(row: Record<string, unknown>): RunCheckpoint {
+  return {
+    step: Number(row.sequence),
+    receivedAt: String(row.created_at),
+    ready: typeof row.uploaded_at === "string",
+  };
+}
+
+function withCheckpoint(checkpoints: RunCheckpoint[], changed: RunCheckpoint): RunCheckpoint[] {
+  return [...checkpoints.filter(({ step }) => step !== changed.step), changed].sort(
+    (left, right) => left.step - right.step,
+  );
 }
 
 function knownEmailsFor(run: RunForViewer, viewer: Viewer): Map<string, string> {
@@ -138,11 +159,20 @@ function CommentView({ comment }: { comment: RunComment }) {
   );
 }
 
-export function LiveRun({ run, viewer }: { run: RunForViewer; viewer: Viewer }) {
+export function LiveRun({
+  run,
+  viewer,
+  cliPackageUrl,
+}: {
+  run: RunForViewer;
+  viewer: Viewer;
+  cliPackageUrl: string;
+}) {
   const [steps, setSteps] = useState(run.steps);
   const [comments, setComments] = useState(run.comments);
   const [steerMessages, setSteerMessages] = useState(run.steerMessages);
   const [hold, setHold] = useState(run.hold);
+  const [checkpoints, setCheckpoints] = useState(run.checkpoints);
   const [watchers, setWatchers] = useState<string[]>([]);
   const [anchorStep, setAnchorStep] = useState<TimelineStep | null>(null);
   const [commentState, commentAction] = useActionState(postCommentAction, INITIAL_COMMENT_STATE);
@@ -209,6 +239,18 @@ export function LiveRun({ run, viewer }: { run: RunForViewer; viewer: Viewer }) 
             setHold(holdFromRow(payload.new, knownEmails));
           },
         )
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "run_checkpoints",
+            filter: `run_id=eq.${run.id}`,
+          },
+          (payload: ChangedRow) => {
+            setCheckpoints((current) => withCheckpoint(current, checkpointFromRow(payload.new)));
+          },
+        )
         .on("presence", { event: "sync" }, () => {
           const present = Object.values(channel.presenceState<PresenceEntry>()).flat();
           setWatchers([...new Set(present.map((entry) => entry.email))]);
@@ -244,7 +286,10 @@ export function LiveRun({ run, viewer }: { run: RunForViewer; viewer: Viewer }) 
       </section>
 
       {run.viewerRole === "guest" ? null : (
-        <SteeringPanel runId={run.id} hold={hold} steerMessages={steerMessages} />
+        <>
+          <SteeringPanel runId={run.id} hold={hold} steerMessages={steerMessages} />
+          <HandoverPanel runId={run.id} checkpoints={checkpoints} cliPackageUrl={cliPackageUrl} />
+        </>
       )}
 
       <h2>Timeline</h2>
