@@ -97,6 +97,7 @@ describe("loadRunForViewer", () => {
           author_id: "user-1",
           body: "Looks right",
           created_at: "2026-09-28T10:00:02Z",
+          audience: "client",
         },
       ],
       error: null,
@@ -121,6 +122,7 @@ describe("loadRunForViewer", () => {
       ],
       error: null,
     });
+    queryResolving({ data: [{ user_id: "client-1" }], error: null });
     getUserByIdMock.mockResolvedValue({ data: { user: { email: "owner@agency.example" } } });
 
     const run = await loadRunForViewer("run-1", "user-2");
@@ -152,6 +154,7 @@ describe("loadRunForViewer", () => {
           authorEmail: "owner@agency.example",
           body: "Looks right",
           receivedAt: "2026-09-28T10:00:02Z",
+          audience: "client",
         },
       ],
       steerMessages: [
@@ -169,6 +172,39 @@ describe("loadRunForViewer", () => {
         { step: 1, receivedAt: "2026-09-28T10:00:05Z", ready: true },
         { step: 2, receivedAt: "2026-09-28T10:01:05Z", ready: false },
       ],
+      guests: [{ userId: "client-1", email: "owner@agency.example" }],
+    });
+  });
+
+  it("gives a guest the timeline and client comments without any team-only data", async () => {
+    rpcMock.mockResolvedValueOnce({ data: "guest", error: null });
+    queryResolving({
+      data: {
+        id: "run-1",
+        workspace_id: "workspace-1",
+        claude_session_id: "s1",
+        created_at: "2026-09-28T10:00:00Z",
+        workspace: { name: "Acme Agency" },
+      },
+      error: null,
+    });
+    queryResolving({ data: [], error: null });
+    queryResolving({ data: [], error: null });
+    getUserByIdMock.mockResolvedValue({ data: { user: { email: "owner@agency.example" } } });
+
+    const run = await loadRunForViewer("run-1", "client-1");
+
+    expect(fromMock.mock.calls.map(([table]) => table as string)).toEqual([
+      "runs",
+      "hook_events",
+      "run_comments",
+    ]);
+    expect(run).toMatchObject({
+      viewerRole: "guest",
+      steerMessages: [],
+      hold: null,
+      checkpoints: [],
+      guests: [],
     });
   });
 });
@@ -182,29 +218,42 @@ describe("postRunComment", () => {
     rpcMock.mockResolvedValueOnce({ data: "comment-1", error: null });
 
     expect(
-      await postRunComment({ runId: "run-1", authorId: "user-1", body: "Hi", stepId: null }),
+      await postRunComment({
+        runId: "run-1",
+        authorId: "user-1",
+        body: "Hi",
+        stepId: null,
+        audience: "client",
+      }),
     ).toBe(true);
     expect(rpcMock).toHaveBeenCalledWith("post_run_comment", {
       p_run_id: "run-1",
       p_author_id: "user-1",
       p_body: "Hi",
       p_hook_event_id: null,
+      p_audience: "client",
     });
   });
 
   it("reports a refused comment", async () => {
     rpcMock.mockResolvedValueOnce({ data: null, error: null });
 
-    expect(await postRunComment({ runId: "r", authorId: "u", body: "Hi", stepId: null })).toBe(
-      false,
-    );
+    expect(
+      await postRunComment({
+        runId: "r",
+        authorId: "u",
+        body: "Hi",
+        stepId: null,
+        audience: "team",
+      }),
+    ).toBe(false);
   });
 
   it("fails with the database error code only", async () => {
     rpcMock.mockResolvedValueOnce({ data: null, error: { code: "23514", message: "check" } });
 
     await expect(
-      postRunComment({ runId: "r", authorId: "u", body: "", stepId: null }),
+      postRunComment({ runId: "r", authorId: "u", body: "", stepId: null, audience: "team" }),
     ).rejects.toThrow(RunStoreError);
   });
 });

@@ -5,6 +5,9 @@ import { describeTimelineStep, type TimelineStep } from "./timeline";
 
 export type RunViewerRole = "owner" | "driver" | "guest";
 
+// "team" comments stay internal; "client" comments are also shown to the run's guests.
+export type CommentAudience = "team" | "client";
+
 export interface RunSummary {
   id: string;
   claudeSessionId: string;
@@ -18,6 +21,7 @@ export interface RunComment {
   authorEmail: string;
   body: string;
   receivedAt: string;
+  audience: CommentAudience;
 }
 
 export interface SteerMessage {
@@ -41,6 +45,11 @@ export interface RunCheckpoint {
   ready: boolean;
 }
 
+export interface RunGuest {
+  userId: string;
+  email: string;
+}
+
 export interface RunForViewer {
   id: string;
   workspaceId: string;
@@ -52,6 +61,8 @@ export interface RunForViewer {
   steerMessages: SteerMessage[];
   hold: RunHold | null;
   checkpoints: RunCheckpoint[];
+  // Clients who can open the run. Empty for a guest viewer.
+  guests: RunGuest[];
 }
 
 // Carries only the Postgres error code: PostgREST details can quote row values.
@@ -91,6 +102,71 @@ async function recordRunView(runId: string, userId: string): Promise<RunViewerRo
   return role as RunViewerRole | null;
 }
 
+type ServerClient = Awaited<ReturnType<typeof createSupabaseServerClient>>;
+
+interface TeamOnlyParts {
+  steerMessages: {
+    id: string;
+    author_id: string;
+    body: string;
+    created_at: string;
+    delivered_at: string | null;
+  }[];
+  activeHold: { raised_by: string; reason: string } | null;
+  checkpoints: { sequence: number; created_at: string; uploaded_at: string | null }[];
+  guests: { user_id: string }[];
+}
+
+const EMPTY_TEAM_ONLY_PARTS: TeamOnlyParts = {
+  steerMessages: [],
+  activeHold: null,
+  checkpoints: [],
+  guests: [],
+};
+
+// Steering, holds, checkpoints and guest access are for the team only. Row level security hides
+// them from guests too; skipping the reads keeps a guest's page from depending on that alone.
+async function loadTeamOnlyParts(supabase: ServerClient, runId: string): Promise<TeamOnlyParts> {
+  const { data: steerMessages, error: steerError } = await supabase
+    .from("steer_messages")
+    .select("id, author_id, body, created_at, delivered_at")
+    .eq("run_id", runId)
+    .order("created_at");
+  if (steerError) {
+    throw new RunStoreError(steerError.code);
+  }
+
+  const { data: activeHold, error: holdError } = await supabase
+    .from("run_holds")
+    .select("raised_by, reason")
+    .eq("run_id", runId)
+    .is("released_at", null)
+    .maybeSingle();
+  if (holdError) {
+    throw new RunStoreError(holdError.code);
+  }
+
+  const { data: checkpoints, error: checkpointsError } = await supabase
+    .from("run_checkpoints")
+    .select("sequence, created_at, uploaded_at")
+    .eq("run_id", runId)
+    .order("sequence");
+  if (checkpointsError) {
+    throw new RunStoreError(checkpointsError.code);
+  }
+
+  const { data: guests, error: guestsError } = await supabase
+    .from("run_guests")
+    .select("user_id")
+    .eq("run_id", runId)
+    .order("created_at");
+  if (guestsError) {
+    throw new RunStoreError(guestsError.code);
+  }
+
+  return { steerMessages, activeHold, checkpoints, guests };
+}
+
 // Records the view first: it both authorizes the viewer and logs participant_joined. The run,
 // its steps and its comments are then read through the viewer's own session (row level security).
 export async function loadRunForViewer(
@@ -123,45 +199,22 @@ export async function loadRunForViewer(
 
   const { data: comments, error: commentsError } = await supabase
     .from("run_comments")
-    .select("id, hook_event_id, author_id, body, created_at")
+    .select("id, hook_event_id, author_id, body, created_at, audience")
     .eq("run_id", runId)
     .order("created_at");
   if (commentsError) {
     throw new RunStoreError(commentsError.code);
   }
 
-  const { data: steerMessages, error: steerError } = await supabase
-    .from("steer_messages")
-    .select("id, author_id, body, created_at, delivered_at")
-    .eq("run_id", runId)
-    .order("created_at");
-  if (steerError) {
-    throw new RunStoreError(steerError.code);
-  }
-
-  const { data: activeHold, error: holdError } = await supabase
-    .from("run_holds")
-    .select("raised_by, reason")
-    .eq("run_id", runId)
-    .is("released_at", null)
-    .maybeSingle();
-  if (holdError) {
-    throw new RunStoreError(holdError.code);
-  }
-
-  const { data: checkpoints, error: checkpointsError } = await supabase
-    .from("run_checkpoints")
-    .select("sequence, created_at, uploaded_at")
-    .eq("run_id", runId)
-    .order("sequence");
-  if (checkpointsError) {
-    throw new RunStoreError(checkpointsError.code);
-  }
+  const teamOnly =
+    viewerRole === "guest" ? EMPTY_TEAM_ONLY_PARTS : await loadTeamOnlyParts(supabase, runId);
+  const { steerMessages, activeHold, checkpoints, guests } = teamOnly;
 
   const authorEmails = await readAccountEmails([
     ...comments.map((comment) => comment.author_id),
     ...steerMessages.map((message) => message.author_id),
     ...(activeHold === null ? [] : [activeHold.raised_by]),
+    ...guests.map((guest) => guest.user_id),
   ]);
   return {
     id: run.id,
@@ -177,6 +230,7 @@ export async function loadRunForViewer(
       authorEmail: authorEmails.get(comment.author_id) ?? "",
       body: comment.body,
       receivedAt: comment.created_at,
+      audience: comment.audience as CommentAudience,
     })),
     steerMessages: steerMessages.map((message) => ({
       id: message.id,
@@ -198,6 +252,10 @@ export async function loadRunForViewer(
       receivedAt: checkpoint.created_at,
       ready: checkpoint.uploaded_at !== null,
     })),
+    guests: guests.map((guest) => ({
+      userId: guest.user_id,
+      email: authorEmails.get(guest.user_id) ?? "",
+    })),
   };
 }
 
@@ -206,6 +264,7 @@ export async function postRunComment(comment: {
   authorId: string;
   body: string;
   stepId: string | null;
+  audience: CommentAudience;
 }): Promise<boolean> {
   const { data: commentId, error } = await createSupabaseAdminClient().rpc("post_run_comment", {
     p_run_id: comment.runId,
@@ -213,6 +272,7 @@ export async function postRunComment(comment: {
     p_body: comment.body,
     // The generated type marks the anchor as required; the function accepts null for no anchor.
     p_hook_event_id: comment.stepId as string,
+    p_audience: comment.audience,
   });
   if (error) {
     throw new RunStoreError(error.code);

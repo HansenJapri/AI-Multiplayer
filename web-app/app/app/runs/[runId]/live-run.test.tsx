@@ -46,6 +46,7 @@ vi.mock("@/lib/supabase/browser-client", () => ({
   }),
 }));
 vi.mock("./actions", () => ({ postCommentAction: vi.fn() }));
+vi.mock("./guest-actions", () => ({ inviteGuestAction: vi.fn() }));
 vi.mock("./steer-actions", () => ({
   sendSteerMessageAction: vi.fn(),
   holdRunAction: vi.fn(),
@@ -89,6 +90,16 @@ const RUN: RunForViewer = {
       authorEmail: "owner@agency.example",
       body: "Why this change?",
       receivedAt: "2026-09-28T10:00:03Z",
+      audience: "team",
+    },
+    {
+      id: "comment-client",
+      stepId: null,
+      authorId: "user-1",
+      authorEmail: "owner@agency.example",
+      body: "The preview is ready for you",
+      receivedAt: "2026-09-28T10:00:04Z",
+      audience: "client",
     },
   ],
   steerMessages: [
@@ -114,6 +125,16 @@ const RUN: RunForViewer = {
     { step: 1, receivedAt: "2026-09-28T10:00:05Z", ready: true },
     { step: 2, receivedAt: "2026-09-28T10:01:05Z", ready: false },
   ],
+  guests: [{ userId: "client-1", email: "buyer@client.example" }],
+};
+
+const GUEST_RUN: RunForViewer = {
+  ...RUN,
+  viewerRole: "guest",
+  comments: RUN.comments.filter(({ audience }) => audience === "client"),
+  steerMessages: [],
+  checkpoints: [],
+  guests: [],
 };
 
 const CLI_PACKAGE_URL = "https://ai-multiplayer.vercel.app/aim.tgz";
@@ -288,6 +309,61 @@ describe("LiveRun", () => {
       delivered_at: "2026-09-28T10:00:09Z",
     });
     expect(screen.getByText("Then run the tests").closest("li")).toHaveTextContent("delivered");
+  });
+
+  it("labels the comments the client can read", () => {
+    render(<LiveRun run={RUN} viewer={VIEWER} cliPackageUrl={CLI_PACKAGE_URL} />);
+
+    expect(screen.getByText("The preview is ready for you").closest(".comment")).toHaveTextContent(
+      "Visible to client",
+    );
+    expect(screen.getByText("Why this change?").closest(".comment")).not.toHaveTextContent(
+      "Visible to client",
+    );
+  });
+
+  it("lets a member share a comment with the client, internal by default", () => {
+    render(<LiveRun run={RUN} viewer={VIEWER} cliPackageUrl={CLI_PACKAGE_URL} />);
+
+    const share = screen.getByRole("checkbox", { name: "Visible to the client" });
+    expect(share).not.toBeChecked();
+    expect(share).toHaveAttribute("name", "audience");
+    expect(share).toHaveAttribute("value", "client");
+  });
+
+  it("shows members which clients can open the run and how to invite one", () => {
+    render(<LiveRun run={RUN} viewer={VIEWER} cliPackageUrl={CLI_PACKAGE_URL} />);
+
+    const clientAccess = screen.getByRole("region", { name: "Client access" });
+    expect(clientAccess).toHaveTextContent("buyer@client.example");
+    expect(screen.getByRole("textbox", { name: "Client email" })).toBeInTheDocument();
+  });
+
+  it("gives a guest a read-and-comment view with no team controls", () => {
+    render(<LiveRun run={GUEST_RUN} viewer={VIEWER} cliPackageUrl={CLI_PACKAGE_URL} />);
+
+    expect(screen.getByText(/You are a guest on this run/)).toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "Client access" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("checkbox", { name: "Visible to the client" }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "Comment" })).toBeInTheDocument();
+    expect(screen.getByText("The preview is ready for you")).toBeInTheDocument();
+  });
+
+  it("labels a client comment that arrives live", async () => {
+    await renderSubscribed();
+
+    emit("run_comments", {
+      id: "comment-3",
+      hook_event_id: null,
+      author_id: "client-1",
+      body: "Thanks!",
+      created_at: "2026-09-28T10:00:09Z",
+      audience: "client",
+    });
+
+    expect(screen.getByText("Thanks!").closest(".comment")).toHaveTextContent("Visible to client");
   });
 
   it("does not offer steering to a client guest", () => {

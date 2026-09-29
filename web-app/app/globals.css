@@ -329,3 +329,21 @@ select {
   display: grid;
   gap: var(--space-1);
 }
+
+/* Client guests */
+.badge-client {
+  border-color: var(--color-success);
+  color: var(--color-success);
+  margin-left: var(--space-2);
+}
+
+.guest-note {
+  border-left: 3px solid var(--color-accent);
+}
+
+.checkbox {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-weight: normal;
+}

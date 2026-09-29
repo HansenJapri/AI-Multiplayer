@@ -69,6 +69,24 @@ describe("RunPage", () => {
     ).toBeInTheDocument();
   });
 
+  it("tells a guest which agency shared the run, without linking into its workspace", async () => {
+    getCurrentUserMock.mockResolvedValueOnce({ id: "client-1", email: "buyer@client.example" });
+    loadRunForViewerMock.mockResolvedValueOnce({
+      id: "run-1",
+      workspaceId: "workspace-1",
+      workspaceName: "Acme Agency",
+      claudeSessionId: "session-1",
+      viewerRole: "guest",
+      steps: [],
+      comments: [],
+    });
+
+    render(await RunPage(pageProps));
+
+    expect(screen.getByText("Shared with you by Acme Agency")).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Acme Agency" })).not.toBeInTheDocument();
+  });
+
   it("answers not found for a run the user may not see", async () => {
     getCurrentUserMock.mockResolvedValueOnce({ id: "user-1", email: "dev@agency.example" });
     loadRunForViewerMock.mockResolvedValueOnce(null);

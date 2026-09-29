@@ -18,6 +18,7 @@ import {
 } from "@/lib/runs/timeline";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser-client";
 import { postCommentAction } from "./actions";
+import { ClientAccessPanel } from "./client-access-panel";
 import type { PostCommentState } from "./comment-state";
 import { HandoverPanel } from "./handover-panel";
 import { HoldBanner, SteeringPanel } from "./steering-panel";
@@ -50,6 +51,7 @@ function commentFromRow(
     authorEmail: knownEmails.get(authorId) ?? UNKNOWN_AUTHOR,
     body: String(row.body),
     receivedAt: String(row.created_at),
+    audience: row.audience === "client" ? "client" : "team",
   };
 }
 
@@ -100,6 +102,7 @@ function knownEmailsFor(run: RunForViewer, viewer: Viewer): Map<string, string> 
   return new Map([
     ...run.comments.map((comment) => [comment.authorId, comment.authorEmail] as const),
     ...run.steerMessages.map((message) => [message.authorId, message.authorEmail] as const),
+    ...run.guests.map((guest) => [guest.userId, guest.email] as const),
     [viewer.id, viewer.email] as const,
   ]);
 }
@@ -154,6 +157,9 @@ function CommentView({ comment }: { comment: RunComment }) {
   return (
     <div className="comment">
       <span className="comment-author">{comment.authorEmail}</span>
+      {comment.audience === "client" ? (
+        <span className="badge badge-client">Visible to client</span>
+      ) : null}
       <p>{comment.body}</p>
     </div>
   );
@@ -270,6 +276,7 @@ export function LiveRun({
   }, [run, viewer]);
 
   const runComments = comments.filter((comment) => comment.stepId === null);
+  const isGuest = run.viewerRole === "guest";
 
   return (
     <>
@@ -285,10 +292,16 @@ export function LiveRun({
         </ul>
       </section>
 
-      {run.viewerRole === "guest" ? null : (
+      {isGuest ? (
+        <p className="card guest-note">
+          You are a guest on this run. Follow the agent as it works and leave comments for the team;
+          they see every comment you post.
+        </p>
+      ) : (
         <>
           <SteeringPanel runId={run.id} hold={hold} steerMessages={steerMessages} />
           <HandoverPanel runId={run.id} checkpoints={checkpoints} cliPackageUrl={cliPackageUrl} />
+          <ClientAccessPanel runId={run.id} guests={run.guests} />
         </>
       )}
 
@@ -332,6 +345,11 @@ export function LiveRun({
         )}
         <label htmlFor="comment-body">Comment</label>
         <textarea id="comment-body" name="body" rows={3} maxLength={4000} required />
+        {isGuest ? null : (
+          <label className="checkbox">
+            <input type="checkbox" name="audience" value="client" /> Visible to the client
+          </label>
+        )}
         {commentState.status === "empty" ? (
           <p role="alert" className="message-error">
             Write something first.
