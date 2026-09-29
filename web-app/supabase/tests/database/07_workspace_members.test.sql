@@ -45,8 +45,8 @@ select fk_ok(
   'workspace_id references workspaces'
 );
 select fk_ok(
-  'public', 'workspace_members', 'user_id', 'auth', 'users', 'id',
-  'user_id references auth.users'
+  'public', 'workspace_members', 'user_id', 'public', 'profiles', 'id',
+  'user_id references profiles'
 );
 select col_not_null('public', 'workspace_members', 'role', 'role is required');
 select col_has_default('public', 'workspace_members', 'created_at', 'created_at is set by default');

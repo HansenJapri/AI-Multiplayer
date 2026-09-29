@@ -50,6 +50,13 @@ export type Database = {
         };
         Relationships: [
           {
+            foreignKeyName: "cli_installs_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
             foreignKeyName: "cli_installs_workspace_id_fkey";
             columns: ["workspace_id"];
             isOneToOne: false;
@@ -103,6 +110,13 @@ export type Database = {
         };
         Relationships: [
           {
+            foreignKeyName: "deposits_started_by_fkey";
+            columns: ["started_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
             foreignKeyName: "deposits_workspace_id_fkey";
             columns: ["workspace_id"];
             isOneToOne: false;
@@ -140,6 +154,13 @@ export type Database = {
           workspace_id?: string;
         };
         Relationships: [
+          {
+            foreignKeyName: "events_actor_id_fkey";
+            columns: ["actor_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
           {
             foreignKeyName: "events_workspace_id_fkey";
             columns: ["workspace_id"];
@@ -207,6 +228,24 @@ export type Database = {
             referencedColumns: ["workspace_id", "id"];
           },
         ];
+      };
+      profiles: {
+        Row: {
+          created_at: string;
+          email: string | null;
+          id: string;
+        };
+        Insert: {
+          created_at?: string;
+          email?: string | null;
+          id: string;
+        };
+        Update: {
+          created_at?: string;
+          email?: string | null;
+          id?: string;
+        };
+        Relationships: [];
       };
       run_checkpoints: {
         Row: {
@@ -289,6 +328,13 @@ export type Database = {
         };
         Relationships: [
           {
+            foreignKeyName: "run_comments_author_id_fkey";
+            columns: ["author_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
             foreignKeyName: "run_comments_workspace_id_hook_event_id_fkey";
             columns: ["workspace_id", "hook_event_id"];
             isOneToOne: false;
@@ -343,6 +389,20 @@ export type Database = {
         };
         Relationships: [
           {
+            foreignKeyName: "run_guest_invites_accepted_by_fkey";
+            columns: ["accepted_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "run_guest_invites_invited_by_fkey";
+            columns: ["invited_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
             foreignKeyName: "run_guest_invites_workspace_id_run_id_fkey";
             columns: ["workspace_id", "run_id"];
             isOneToOne: false;
@@ -374,6 +434,20 @@ export type Database = {
           workspace_id?: string;
         };
         Relationships: [
+          {
+            foreignKeyName: "run_guests_invited_by_fkey";
+            columns: ["invited_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "run_guests_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
           {
             foreignKeyName: "run_guests_workspace_id_run_id_fkey";
             columns: ["workspace_id", "run_id"];
@@ -416,6 +490,20 @@ export type Database = {
         };
         Relationships: [
           {
+            foreignKeyName: "run_holds_raised_by_fkey";
+            columns: ["raised_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "run_holds_released_by_fkey";
+            columns: ["released_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
             foreignKeyName: "run_holds_workspace_id_run_id_fkey";
             columns: ["workspace_id", "run_id"];
             isOneToOne: false;
@@ -447,6 +535,13 @@ export type Database = {
           workspace_id?: string;
         };
         Relationships: [
+          {
+            foreignKeyName: "run_participants_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
           {
             foreignKeyName: "run_participants_workspace_id_run_id_fkey";
             columns: ["workspace_id", "run_id"];
@@ -515,6 +610,13 @@ export type Database = {
         };
         Relationships: [
           {
+            foreignKeyName: "steer_messages_author_id_fkey";
+            columns: ["author_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
             foreignKeyName: "steer_messages_workspace_id_run_id_fkey";
             columns: ["workspace_id", "run_id"];
             isOneToOne: false;
@@ -559,6 +661,20 @@ export type Database = {
         };
         Relationships: [
           {
+            foreignKeyName: "workspace_invites_accepted_by_fkey";
+            columns: ["accepted_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "workspace_invites_invited_by_fkey";
+            columns: ["invited_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
             foreignKeyName: "workspace_invites_workspace_id_fkey";
             columns: ["workspace_id"];
             isOneToOne: false;
@@ -587,6 +703,13 @@ export type Database = {
           workspace_id?: string;
         };
         Relationships: [
+          {
+            foreignKeyName: "workspace_members_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
           {
             foreignKeyName: "workspace_members_workspace_id_fkey";
             columns: ["workspace_id"];

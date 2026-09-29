@@ -37,8 +37,8 @@ select col_is_unique(
 select col_type_is('public', 'cli_installs', 'user_id', 'uuid', 'user_id is a uuid');
 select col_not_null('public', 'cli_installs', 'user_id', 'every install token belongs to a user');
 select fk_ok(
-  'public', 'cli_installs', 'user_id', 'auth', 'users', 'id',
-  'user_id references auth.users'
+  'public', 'cli_installs', 'user_id', 'public', 'profiles', 'id',
+  'user_id references profiles'
 );
 
 select col_type_is('public', 'cli_installs', 'token_hash', 'text', 'token_hash is text');
