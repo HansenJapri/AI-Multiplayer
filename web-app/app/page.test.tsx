@@ -8,4 +8,10 @@ describe("HomePage", () => {
 
     expect(screen.getByRole("heading", { level: 1, name: "AI Multiplayer" })).toBeInTheDocument();
   });
+
+  it("links to pricing", () => {
+    render(<HomePage />);
+
+    expect(screen.getByRole("link", { name: "Pricing" })).toHaveAttribute("href", "/pricing");
+  });
 });

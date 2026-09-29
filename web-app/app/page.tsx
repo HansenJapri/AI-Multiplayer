@@ -15,6 +15,9 @@ export default function HomePage() {
       <p>
         <Link className="button" href="/login">
           Sign in
+        </Link>{" "}
+        <Link className="button button-quiet" href="/pricing">
+          Pricing
         </Link>
       </p>
     </main>
